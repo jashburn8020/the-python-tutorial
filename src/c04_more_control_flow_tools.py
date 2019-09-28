@@ -7,13 +7,14 @@ import pytest
 
 
 def positive_negative(number):
-    """if-elif-else"""
+    """Returns -1 for negative numbers, 1 for positive numbers, and 0 for 0"""
     if number < 0:
-        return -1
+        result = -1
     elif number == 0:
-        return 0
+        result = 0
     else:
-        return 1
+        result = 1
+    return result
 
 
 def test_if():
@@ -110,7 +111,9 @@ def test_for_break_else():
 
 
 class MyEmptyClass:
-    """The pass statement does nothing. It can be used when a statement is required syntactically but the program requires no action"""
+    """The pass statement does nothing. It can be used when a statement is required syntactically
+    but the program requires no action"""
+    # pylint: disable=too-few-public-methods, unnecessary-pass
     pass
 
 # Defining Functions
@@ -154,6 +157,7 @@ def test_default_args():
 
 def mutable_default_value(value, container=[]):
     """container default value is a mutable object. Avoid!"""
+    # pylint: disable=dangerous-default-value
     container.append(value)
     return container
 
@@ -189,7 +193,8 @@ def arbitrary_keyword_arguments(first, **seconds):
     When a final parameter is of the form **name, it receives a dictionary containing all keyword
     arguments except those corresponding to a formal parameter
     """
-    return seconds
+    # pylint: disable=unused-argument
+    return seconds.copy()
 
 
 def test_arbitrary_keyword_arguments():
