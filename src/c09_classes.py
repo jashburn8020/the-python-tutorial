@@ -53,6 +53,7 @@ assert spam == "global spam"
 
 class Dog:
     """Demo class"""
+    # Class variable
     dog_tricks = []
 
     def __init__(self, name):
@@ -129,3 +130,39 @@ def test_add_function_to_class():
         print(Dog.powers)
 
     del Dog.add_power
+
+# Inheritance
+
+
+class Person:
+    """Base class"""
+
+    def __init__(self, name):
+        self.name = name
+
+    def introduce_self(self):
+        """Get self introduction"""
+        return f"Hi, I'm {self.name}"
+
+
+class Student(Person):
+    """Derived class"""
+
+    def __init__(self, name, graduation_year):
+        """Can be omitted if __init__ doesn't do anything different from base class's."""
+        super().__init__(name)
+        self.year = graduation_year
+
+    def change_graduation_year(self, year):
+        """Change the graduation year that is set via the constructor."""
+        self.year = year
+
+    def introduce_self(self):
+        """Override base class method."""
+        return f"{super().introduce_self()} of class {self.year}"
+
+
+def test_inheritance():
+    student = Student("Adamu", "2000")
+    student.change_graduation_year("1999")
+    assert student.introduce_self() == "Hi, I'm Adamu of class 1999"
