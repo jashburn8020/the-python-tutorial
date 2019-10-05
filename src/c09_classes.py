@@ -134,7 +134,7 @@ def test_add_function_to_class():
 # Inheritance
 
 
-class Person:
+class Person:  # pylint: disable=too-few-public-methods
     """Base class"""
 
     def __init__(self, name):
@@ -153,9 +153,9 @@ class Student(Person):
         super().__init__(name)
         self.year = graduation_year
 
-    def change_graduation_year(self, year):
-        """Change the graduation year that is set via the constructor."""
-        self.year = year
+    def change_name(self, name):
+        """Change the name that is set via the constructor."""
+        self.name = name
 
     def introduce_self(self):
         """Override base class method."""
@@ -163,6 +163,90 @@ class Student(Person):
 
 
 def test_inheritance():
+    """Single inheritance"""
     student = Student("Adamu", "2000")
-    student.change_graduation_year("1999")
-    assert student.introduce_self() == "Hi, I'm Adamu of class 1999"
+    student.change_name("Bishara")
+    assert student.introduce_self() == "Hi, I'm Bishara of class 2000"
+
+
+class BaseOne:  # pylint: disable=too-few-public-methods
+    """Multiple inheritance: First base class"""
+
+    def __init__(self, name):
+        self.name = name
+
+    def identify(self):
+        """Identify instance name"""
+        return f"{self.name} of BaseOne"
+
+
+class BaseTwo:
+    """Multiple inheritance: Second base class"""
+
+    def __init__(self, name):
+        self.name = name
+
+    def identify(self):
+        """Identify instance name"""
+        return f"{self.name} of BaseTwo"
+
+    def identify_embelished(self):
+        """Identify instance with embelishment"""
+        return f"{self.name} the Great"
+
+
+def test_multiple_inheritance():
+    """Multiple inheritance: Search for attributes inherited from a parent class as depth-first,
+    left-to-right, not searching twice in the same class where there is an overlap in the
+    hierarchy."""
+
+    class DerivedClass(BaseOne, BaseTwo):
+        """Derived class demonstrating attributes search order"""
+
+    derived = DerivedClass("Derived")
+    assert derived.identify() == "Derived of BaseOne"
+    assert derived.identify_embelished() == "Derived the Great"
+
+
+class Mapping:  # pylint: disable=too-few-public-methods
+    """Name mangling: Calling own method instead of derived class's"""
+
+    def __init__(self, iterable):
+        # Name mangling: Can only be accessed externally through _Mapping__items_list.
+        self.__items_list = []
+
+        # If we don't use the private copy here, we'll get:
+        # TypeError: update() missing 1 required positional argument: 'values'
+        self.__update(iterable)
+
+    def update(self, iterable):
+        """Append instance iterable with values from argument"""
+        for item in iterable:
+            self.__items_list.append(item)
+
+    __update = update   # private copy of original update() method
+
+
+class MappingSubclass(Mapping):  # pylint: disable=too-few-public-methods
+    """Name mangling: Derived class"""
+
+    def update(self, keys, values):  # pylint: disable=arguments-differ
+        """Append iterables mapped as tuples to instance iterable"""
+        for item in zip(keys, values):
+            self._Mapping__items_list.append(item)  # pylint: disable=no-member
+
+
+def test_private_variables():
+    """Private variables don't exist in Python. However, there is a convention: a name prefixed
+    with an underscore (e.g. _spam) should be treated as a non-public part of the API (whether it
+    is a function, a method or a data member). It should be considered an implementation detail and
+    subject to change without notice.
+
+    Name mangling: Any identifier of the form __spam (at least two leading underscores, at most one
+    trailing underscore) is textually replaced with _classname__spam"""
+    mapping = MappingSubclass([1, 2])
+    mapping.update((3, 5), (4, 6))
+    # pylint: disable=no-member, protected-access
+    with pytest.raises(AttributeError):
+        assert mapping.__items_list
+    assert mapping._Mapping__items_list == [1, 2, (3, 4), (5, 6)]
