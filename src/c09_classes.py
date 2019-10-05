@@ -177,7 +177,7 @@ class BaseOne:  # pylint: disable=too-few-public-methods
 
     def identify(self):
         """Identify instance name"""
-        return f"{self.name} of BaseOne"
+        return f"{self.name} from BaseOne"
 
 
 class BaseTwo:
@@ -188,7 +188,7 @@ class BaseTwo:
 
     def identify(self):
         """Identify instance name"""
-        return f"{self.name} of BaseTwo"
+        return f"{self.name} from BaseTwo"
 
     def identify_embelished(self):
         """Identify instance with embelishment"""
@@ -204,8 +204,10 @@ def test_multiple_inheritance():
         """Derived class demonstrating attributes search order"""
 
     derived = DerivedClass("Derived")
-    assert derived.identify() == "Derived of BaseOne"
+    assert derived.identify() == "Derived from BaseOne"
     assert derived.identify_embelished() == "Derived the Great"
+
+# Private variables
 
 
 class Mapping:  # pylint: disable=too-few-public-methods
@@ -215,7 +217,7 @@ class Mapping:  # pylint: disable=too-few-public-methods
         # Name mangling: Can only be accessed externally through _Mapping__items_list.
         self.__items_list = []
 
-        # If we don't use the private copy here, we'll get:
+        # If we don't use the private copy here, when subclassed by MappingSubclass, we'll get:
         # TypeError: update() missing 1 required positional argument: 'values'
         self.__update(iterable)
 
@@ -250,3 +252,93 @@ def test_private_variables():
     with pytest.raises(AttributeError):
         assert mapping.__items_list
     assert mapping._Mapping__items_list == [1, 2, (3, 4), (5, 6)]
+
+# Odds and ends
+
+
+def test_struct():
+    """A data type similar to the Pascal “record” or C “struct”, bundling together a few named data
+    items"""
+    class Employee:  # pylint: disable=too-few-public-methods
+        """Empty class definition to emulate a struct."""
+
+    john = Employee()  # An empty record
+    # pylint: disable=attribute-defined-outside-init
+    john.name = "John Doe"
+    john.dept = "IT"
+
+    assert john.__dict__ == {"name": "John Doe", "dept": "IT"}
+
+
+class Engine:
+    """Engine that can be turned on and off"""
+
+    def turn_on(self):  # pylint: disable=missing-docstring, no-self-use
+        return "vroom"
+
+    def turn_off(self):  # pylint: disable=missing-docstring, no-self-use
+        return "hiss"
+
+
+class LightBulb:
+    """Light bulb that can be turned on and smashed"""
+
+    def turn_on(self):  # pylint: disable=missing-docstring, no-self-use
+        return "let there be light"
+
+    def smash(self):  # pylint: disable=missing-docstring, no-self-use
+        return "fizz"
+
+
+class Car:  # pylint: disable=too-few-public-methods
+    """A car that uses an engine, but can take in anything that implements turn_on()"""
+
+    def __init__(self, engine):
+        self.engine = engine
+
+    def run(self):
+        """Run anything that implements turn_on()"""
+        return self.engine.turn_on()
+
+
+def test_duck_typing():
+    """A piece of Python code that expects a particular abstract data type can often be passed a
+    class that emulates the methods of that data type instead."""
+    car_engine = Car(Engine())
+    assert car_engine.run() == "vroom"
+
+    car_bulb = Car(LightBulb())
+    assert car_bulb.run() == "let there be light"
+
+# Iterators
+
+
+def test_iterator():
+    """Implementing a custom iterator
+
+    Behind the scenes of a for statement: The for statement calls iter() on the container object.
+    The function returns an iterator object that defines the method __next__(), which accesses
+    elements in the container one at a time. When there are no more elements, __next__() raises a
+    StopIteration exception which tells the for loop to terminate."""
+
+    class Reverse:
+        """Container that iterates iterables in reverse"""
+
+        def __init__(self, data):
+            self.data = data
+            self.index = len(data)
+
+        def __next__(self):
+            """The next() built-in function calls this method."""
+            if self.index <= 0:
+                raise StopIteration()
+            self.index -= 1
+            return self.data[self.index]
+
+        def __iter__(self):
+            """The iter() built-in function calls this method. The return type must define the
+            __next__() method."""
+            return self
+
+    rev_nums = Reverse((1, 2, 3))
+    assert [num for num in rev_nums] == [3, 2, 1]
