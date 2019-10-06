@@ -342,3 +342,43 @@ def test_iterator():
 
     rev_nums = Reverse((1, 2, 3))
     assert [num for num in rev_nums] == [3, 2, 1]
+
+
+def test_generators():
+    """Generators are used for creating iterators. They are written like regular functions but use
+    the yield statement whenever they want to return data. Each time next() is called on it, the
+    generator resumes where it left off (it remembers all the data values and which statement was
+    last executed).
+
+    Key features:
+    - generators are compact - __iter__() and __next__() methods are created automatically
+    - local variables and execution state such as self.index and self.data are automatically saved
+    between calls
+    - when generators terminate, they automatically raise StopIteration"""
+
+    def reverse(data):
+        for index in range(len(data) - 1, -1, -1):
+            yield data[index]
+
+    # One way to use reverse()
+    assert "".join(reverse("golf")) == "flog"
+
+    # Another way to use reverse()
+    reversed_str = ""
+    for char in reverse("golf"):
+        # pylint: disable=consider-using-join
+        reversed_str += char
+    assert reversed_str == "flog"
+
+
+def test_generator_expressions():
+    """Some simple generators can be coded succinctly as expressions using a syntax similar to list
+    comprehensions but with parentheses instead of square brackets. These expressions are designed
+    for situations where the generator is used right away by an enclosing function. Generator
+    expressions are more compact but less versatile than full generator definitions, and tend to be
+    more memory friendly than equivalent list comprehensions."""
+
+    assert sum(i * i for i in range(10)) == 285
+
+    data = "golf"
+    assert "".join(data[index] for index in range(len(data) - 1, -1, -1)) == "flog"
