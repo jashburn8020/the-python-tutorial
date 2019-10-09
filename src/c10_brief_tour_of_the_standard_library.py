@@ -9,6 +9,8 @@ import math
 import random
 import statistics
 import datetime
+import zipfile
+import pytest
 
 
 def test_os():
@@ -53,3 +55,29 @@ def test_datetime():
     date1 = datetime.date(2003, 3, 3)
     date2 = datetime.date(2003, 4, 3)
     assert (date2 - date1).days == 31
+
+
+def test_zipfile():
+    """The zipfile module can be used to manipulate ZIP archive files."""
+    msg = "This message did not exist in a file"
+    file = "did_not_exist.zip"
+    str_file = "from_string.txt"
+    with zipfile.ZipFile(file, mode="w", compression=zipfile.ZIP_DEFLATED) as zip_write:
+        zip_write.writestr(str_file, msg)
+
+    assert zipfile.is_zipfile(file) is True
+
+    with zipfile.ZipFile(file, mode="r") as zip_read:
+        assert zip_read.testzip() is None
+        assert zip_read.namelist() == [str_file]
+
+        info_list = zip_read.infolist()
+        assert len(info_list) == 1
+        assert info_list[0].filename == str_file
+
+        assert zip_read.read(str_file).decode("utf8") == msg
+
+    pytest.raises(zipfile.BadZipFile, zipfile.ZipFile, "c10_brief_tour_of_the_standard_library.py")
+
+    if os.path.exists(file):
+        os.remove(file)
