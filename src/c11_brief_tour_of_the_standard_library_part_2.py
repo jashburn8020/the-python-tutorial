@@ -3,14 +3,15 @@
 Brief Tour of the Standard Library Part 2
 https://docs.python.org/3/tutorial/stdlib2.html
 """
+from string import Template
 import reprlib
 import pprint
 import contextlib
 import io
 import locale
 import datetime
+import logging
 import pytest
-from string import Template
 
 
 def test_reprlib():
@@ -94,3 +95,87 @@ def test_template_customise():
     template = PercentTemplate("%{village}folk send $10 to %{cause} 50%% of the time")
     sentence = template.substitute(village="Nottingham", cause="the ditch fund")
     assert sentence == "Nottinghamfolk send $10 to the ditch fund 50% of the time"
+
+
+class LoggingContext:
+    """There are times when it would be useful to temporarily change the logging configuration and
+    revert it back after doing something.
+    https://docs.python.org/3/howto/logging-cookbook.html#using-a-context-manager-for-selective-logging"""
+
+    def __init__(self, logger, level=None, handler=None, close=True):
+        self.logger = logger
+        self.logger.propagate = False
+        self.level = level
+        self.handler = handler
+        self.close = close
+        self.old_level = None
+
+    def __enter__(self):
+        if self.level is not None:
+            self.old_level = self.logger.level
+            self.logger.setLevel(self.level)
+        if self.handler:
+            self.logger.addHandler(self.handler)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.level is not None:
+            self.logger.setLevel(self.old_level)
+        if self.handler:
+            self.logger.removeHandler(self.handler)
+        if self.handler and self.close:
+            self.handler.close()
+
+
+def test_logging_simple():
+    """Log message at the preset levels. Also demonstrates the use of a context manager."""
+    logger = logging.getLogger(__name__)
+    logs_string = io.StringIO()
+    with LoggingContext(logger, handler=logging.StreamHandler(logs_string)):
+        logger.debug("debug message")
+        logger.info("info message")
+        logger.warning("warning message")
+        logger.error("error message")
+        logger.critical("critical message")
+
+    assert logs_string.getvalue() == """debug message
+info message
+warning message
+error message
+critical message
+"""
+
+
+def test_logging_output_format():
+    """Format log output message. See
+    https://docs.python.org/3/library/logging.html#logrecord-attributes for the list of LogRecord
+    attributes."""
+    logger = logging.getLogger(__name__)
+    formatter = logging.Formatter("%(levelname)s %(funcName)s(): %(message)s")
+    logs_string = io.StringIO()
+    log_handler = logging.StreamHandler(logs_string)
+    log_handler.setFormatter(formatter)
+    with LoggingContext(logger, handler=log_handler):
+        logger.warning("warning message")
+
+    assert logs_string.getvalue() == "WARNING test_logging_output_format(): warning message\n"
+
+
+def test_logging_variable_data():
+    """Include dynamic information from your application in the logs. Also demonstrate logging an
+    exception."""
+
+
+def test_logging_exception():
+    """Exceptions can be logged using logger.exception(), or other logging methods from debug() to critical() and pass the exc_info parameter as True"""
+    logger = logging.getLogger(__name__)
+    formatter = logging.Formatter("%(levelname)s: %(message)s")
+    logs_string = io.StringIO()
+    log_handler = logging.StreamHandler(logs_string)
+    log_handler.setFormatter(formatter)
+    with LoggingContext(logger, handler=log_handler):
+        try:
+            1 / 0
+        except ZeroDivisionError:
+            logger.exception("calculation error")
+
+    assert logs_string.getvalue() == "ZeroDivisionError: division by zero\n"
