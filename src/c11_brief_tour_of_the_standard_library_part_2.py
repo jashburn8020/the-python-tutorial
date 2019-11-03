@@ -11,6 +11,7 @@ import io
 import locale
 import datetime
 import logging
+import re
 import pytest
 
 
@@ -160,17 +161,37 @@ def test_logging_output_format():
     assert logs_string.getvalue() == "WARNING test_logging_output_format(): warning message\n"
 
 
-def test_logging_variable_data():
-    """Include dynamic information from your application in the logs. Also demonstrate logging an
-    exception."""
-
-
-def test_logging_exception():
-    """Exceptions can be logged using logger.exception(), or other logging methods from debug() to critical() and pass the exc_info parameter as True"""
+def test_logging_extra():
+    """'extra' can be used to pass a dictionary which is used to populate the __dict__ of the
+    LogRecord created for the logging event with user-defined attributes. These custom attributes
+    can then be used as you like. For example, they could be incorporated into logged messages."""
     logger = logging.getLogger(__name__)
-    formatter = logging.Formatter("%(levelname)s: %(message)s")
+    formatter = logging.Formatter("%(levelname)s [%(user)s]: %(message)s")
     logs_string = io.StringIO()
     log_handler = logging.StreamHandler(logs_string)
+    log_handler.setFormatter(formatter)
+    with LoggingContext(logger, handler=log_handler):
+        logger.warning("warning message", extra={"user": "Some User"})
+
+    assert logs_string.getvalue() == "WARNING [Some User]: warning message\n"
+
+
+def test_logging_capsys(capsys):
+    """pytest capsys fixture. See https://docs.pytest.org/en/latest/capture.html"""
+    logger = logging.getLogger(__name__)
+    logger.debug("debug message")
+    assert capsys.readouterr().err == ""
+
+    logger.warning("warning message")
+    assert capsys.readouterr().err == "warning message\n"
+
+
+def test_logging_exception(capsys):
+    """Exceptions can be logged using logger.exception(), or other logging methods from debug() to
+    critical() and pass the exc_info parameter as True"""
+    logger = logging.getLogger(__name__)
+    formatter = logging.Formatter("%(levelname)s: %(message)s")
+    log_handler = logging.StreamHandler()
     log_handler.setFormatter(formatter)
     with LoggingContext(logger, handler=log_handler):
         try:
@@ -178,4 +199,29 @@ def test_logging_exception():
         except ZeroDivisionError:
             logger.exception("calculation error")
 
-    assert logs_string.getvalue() == "ZeroDivisionError: division by zero\n"
+    pattern = re.compile(r"""^ERROR: calculation error
+Traceback.+
+  File.+
+    1 / 0
+ZeroDivisionError: division by zero$""")
+    assert pattern.match(capsys.readouterr().err)
+
+    with LoggingContext(logger, handler=log_handler):
+        try:
+            1 / 0
+        except ZeroDivisionError:
+            # If exc_info does not evaluate as false, it causes exception information to be added
+            # to the logging message
+            logger.warning("calculation error", exc_info=True)
+
+    assert re.match(r"^WARNING: calculation error\nTraceback .+$", capsys.readouterr().err, re.M)
+
+
+def test_logging_stack_info(capsys):
+    """If 'stack_info' is true, stack information is added to the logging message, including the
+    actual logging call. It shows how you got to a certain point in your code, even when no
+    exceptions were raised."""
+    logger = logging.getLogger(__name__)
+    logger.warning("warning message", stack_info=True)
+    assert re.match(r"^warning message\nStack \(most recent call last\):\n.+",
+                    capsys.readouterr().err)
