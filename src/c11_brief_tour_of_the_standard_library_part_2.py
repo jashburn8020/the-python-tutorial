@@ -12,6 +12,8 @@ import locale
 import datetime
 import logging
 import re
+import weakref
+import gc
 import pytest
 
 
@@ -225,3 +227,39 @@ def test_logging_stack_info(capsys):
     logger.warning("warning message", stack_info=True)
     assert re.match(r"^warning message\nStack \(most recent call last\):\n.+",
                     capsys.readouterr().err)
+
+
+def test_weakref():
+    """Occasionally there is a need to track objects only as long as they are being used by
+    something else. Just tracking them creates a reference that makes them permanent (cannot be
+    garbage collected). The weakref module provides tools for tracking objects without creating a
+    reference. When the object is no longer needed, it is automatically removed from a weakref
+    table.
+
+    A primary use for weak references is to implement caches or mappings holding large objects,
+    where it's desired that a large object not be kept alive solely because it appears in a cache
+    or mapping. If, for example, an image object is a value in a WeakValueDictionary, then when the
+    last remaining references to that image object are the weak references held by weak mappings,
+    garbage collection can reclaim the object, and its corresponding entries in weak mappings are
+    simply deleted."""
+    # pylint: disable=too-few-public-methods
+    class BigImage:
+        """Dummy class to simulate a large object"""
+
+        def __init__(self, value):
+            self.value = value
+
+        def __repr__(self):
+            return str(self.value)
+
+    big_image = BigImage(10)  # Create a reference
+    weak_dict = weakref.WeakValueDictionary()
+    weak_dict['big image'] = big_image
+
+    gc.collect()
+    assert weak_dict['big image'] is big_image
+
+    del big_image
+    gc.collect()
+    with pytest.raises(KeyError):
+        assert weak_dict['big image']
