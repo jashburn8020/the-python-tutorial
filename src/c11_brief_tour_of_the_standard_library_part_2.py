@@ -14,6 +14,10 @@ import logging
 import re
 import weakref
 import gc
+import array
+import bisect
+import heapq
+import decimal
 import pytest
 
 
@@ -254,12 +258,82 @@ def test_weakref():
 
     big_image = BigImage(10)  # Create a reference
     weak_dict = weakref.WeakValueDictionary()
-    weak_dict['big image'] = big_image
+    weak_dict["big image"] = big_image
 
     gc.collect()
-    assert weak_dict['big image'] is big_image
+    assert weak_dict["big image"] is big_image
 
     del big_image
     gc.collect()
     with pytest.raises(KeyError):
-        assert weak_dict['big image']
+        assert weak_dict["big image"]
+
+
+def test_array():
+    """Arrays are sequence types and behave very much like lists, except that the type of objects
+    stored in them is constrained. It  can compactly represent an array of basic values:
+    characters, integers, floating point numbers."""
+    signed_int_array = array.array("i", [-1, 0, 1])
+    assert sum(signed_int_array) == 0
+
+    with pytest.raises(OverflowError, match="can't convert negative value to unsigned in"):
+        array.array("I", [-1, 0, 1])
+
+
+def test_bisect():
+    """The bisect module provides support for maintaining a list in sorted order without having to
+    sort the list after each insertion. For long lists of items with expensive comparison
+    operations, this can be an improvement over the more common approach.
+
+    bisect(): For a value x, the returned insertion point i partitions the array a into two halves
+    so that the left side contains values <= x, and the right side contains values > x."""
+    def grade(score, breakpoints=(60, 70, 80, 90), grades='FDCBA'):
+        index = bisect.bisect(breakpoints, score)
+        return grades[index]
+
+    assert [grade(score) for score in [30, 99, 70, 77]] == ["F", "A", "C", "C"]
+
+
+def test_bisect_insort():
+    """insort(): Insert the value x after any existing entries of x"""
+    scores = [(200, "tcl"), (400, "lua")]
+    bisect.insort(scores, (300, "ruby"))
+    assert scores == [(200, "tcl"), (300, "ruby"), (400, "lua")]
+
+
+def test_heapq():
+    """The heapq module provides an implementation of the heap queue algorithm, also known as the
+    priority queue algorithm. Heaps are binary trees for which every parent node has a value less
+    than or equal to any of its children.
+
+    The lowest valued entry is always kept at position zero. This is useful for applications that
+    repeatedly access the smallest element but do not want to run a full list sort."""
+    data = [1, 3, 5, 2, 4, 6]
+    heapq.heapify(data)  # Transform list into a heap, in-place, in linear time
+    assert data == [1, 2, 5, 3, 4, 6]
+
+    heapq.heappush(data, -1)
+    assert data[0] == -1
+    assert len(data) == 7
+
+    assert heapq.heappop(data) == -1  # Pop and return the smallest item from the heap
+    assert len(data) == 6
+
+
+def test_decimal():
+    """The decimal module offers a Decimal datatype for decimal floating point arithmetic. Compared
+    to the built-in float implementation of binary floating point, the class is especially helpful
+    for financial applications and other uses that require exact decimal representation."""
+    context = decimal.getcontext()  # Get the environment for arithmetic operations
+    # ROUND_HALF_EVEN: Round to nearest with ties going to nearest even integer
+    assert context.rounding == "ROUND_HALF_EVEN"
+
+    # 0.7 * 1.05 == 0.735
+    assert round(0.7 * 1.05, 2) == 0.73
+    assert round(decimal.Decimal("0.7") * decimal.Decimal("1.05"), 2) == decimal.Decimal("0.74")
+
+    # Exact representation enables the Decimal class to perform modulo calculations and equality
+    # tests that are unsuitable for binary floating point.
+    # 0.09999999999999995
+    assert 1.00 % 0.10 != 0.00
+    assert decimal.Decimal("1.00") % decimal.Decimal("0.10") == decimal.Decimal("0.00")
