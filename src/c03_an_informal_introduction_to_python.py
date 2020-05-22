@@ -6,36 +6,44 @@ import pytest
 
 
 class TestStrings:
-    def test_raw_strings(self):
+    """Demonstrate strings."""
+
+    @staticmethod
+    def test_raw_strings():
         """Raw Strings"""
         path = r"c:\some\name"
         assert path == "c:\\some\\name"
 
-    def test_multiline(self):
+    @staticmethod
+    def test_multiline():
         """Multiline strings"""
         multiline = """\
 one
 two"""
         assert multiline == "one\ntwo"
 
-    def test_concat_repeat(self):
+    @staticmethod
+    def test_concat_repeat():
         """String concatenation and repetition"""
         some_str = 2 * "pa" + "dum"
         assert some_str == "papadum"
 
-    def test_concat_string_literal(self):
+    @staticmethod
+    def test_concat_string_literal():
         """Concatenating literal strings"""
         some_str = "Breaking a long " "string"
         assert some_str == "Breaking a long string"
 
-    def test_string_index(self):
+    @staticmethod
+    def test_string_index():
         """String indices"""
         some_str = "python"
         assert some_str[0] == "p"
         assert some_str[5] == "n"
         assert some_str[5] == some_str[-1]
 
-    def test_string_slice(self):
+    @staticmethod
+    def test_string_slice():
         """String slicing"""
         some_str = "python"
         assert some_str[:2] == "py"
@@ -44,21 +52,24 @@ two"""
         assert some_str[-2:] == some_str[4:]
         assert some_str[4:100] == "on"
 
-    def test_immutable_string(self):
+    @staticmethod
+    def test_immutable_string():
         """Assigning to an indexed position results in an error"""
         word = "python"
         with pytest.raises(TypeError):
             word[0] = "J"
 
         # If you need a different string, create a new one
-        assert "Jython" == "J" + word[1:]
+        assert "J" + word[1:] == "Jython"
 
-    def test_string_len(self):
+    @staticmethod
+    def test_string_len():
         """String length"""
         some_str = "python"
         assert len(some_str) == 6
 
-    def test_string_methods(self):
+    @staticmethod
+    def test_string_methods():
         """
         String methods
         https://docs.python.org/3/library/stdtypes.html#string-methods
@@ -68,7 +79,8 @@ two"""
         assert some_str.endswith(("m", "n"))
         assert some_str.rjust(10, "*") == "****python"
 
-    def test_formatted_string_literals(self):
+    @staticmethod
+    def test_formatted_string_literals():
         """
         Formatted string literals
         https://docs.python.org/3/reference/lexical_analysis.html#f-strings
@@ -81,7 +93,8 @@ two"""
         value = 12.34567
         assert f"result:{value:{width}.{precision}}" == "result:  12.35"
 
-    def test_format_string_syntax(self):
+    @staticmethod
+    def test_format_string_syntax():
         """
         Format string syntax
         https://docs.python.org/3/library/string.html#formatstrings
@@ -104,7 +117,10 @@ two"""
 
 
 class TestLists:
-    def test_list_index_slice(self):
+    """Demonstrate lists."""
+
+    @staticmethod
+    def test_list_index_slice():
         """List indexing and slicing"""
         squares = [1, 4, 9, 16, 25]
         assert squares[4] == 25
@@ -116,25 +132,29 @@ class TestLists:
         squares[2:4] = []
         assert squares == [1, 36, 25]
 
-    def test_list_concat(self):
+    @staticmethod
+    def test_list_concat():
         """List concatenation"""
         squares = [1, 4, 9]
         squares = squares + [16, 25]
         assert squares == [1, 4, 9, 16, 25]
 
-    def test_list_mutable(self):
+    @staticmethod
+    def test_list_mutable():
         """Lists are mutable"""
         cubes = [1, 8, 27, 65]
         cubes[3] = 64
         assert cubes == [1, 8, 27, 64]
 
-    def test_list_append(self):
+    @staticmethod
+    def test_list_append():
         """Appending to a list"""
         squares = [1, 4, 9]
         squares.append(4 ** 2)
         assert squares == [1, 4, 9, 16]
 
-    def test_list_assign_to_slice(self):
+    @staticmethod
+    def test_list_assign_to_slice():
         """Assignment to slices"""
         letters = ["a", "b", "c", "d", "e"]
         letters[1:3] = ["B", "C"]
@@ -148,11 +168,13 @@ class TestLists:
         letters[:] = []
         assert letters == []
 
-    def test_list_len(self):
+    @staticmethod
+    def test_list_len():
         """List length"""
         assert len(["a", "b", "c", "d", "e"]) == 5
 
-    def test_list_nest(self):
+    @staticmethod
+    def test_list_nest():
         """Nested list"""
         letters = ["a", "b", "c"]
         numbers = [1, 2]
