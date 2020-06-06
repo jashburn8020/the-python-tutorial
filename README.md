@@ -24,7 +24,7 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
 
 - Strings can be enclosed in single quotes (`'...'`) or double quotes (`"..."`)
   - `\` can be used to escape quotes
-- If you don’t want characters prefaced by `\` to be interpreted as special characters, you can use **raw strings** by adding an `r` before the first quote
+- If you don't want characters prefaced by `\` to be interpreted as special characters, you can use **raw strings** by adding an `r` before the first quote
   - see `test_raw_strings()`
 - String literals can span **multiple lines**
   - one way is using triple-quotes: `"""..."""` or `'''...'''`
@@ -32,6 +32,10 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
     - possible to prevent this by adding a `\` at the end of the line
   - see `test_multiline()`
 - Strings can be **concatenated** with the `+` operator, and **repeated** with `*`
+  - repeated concatenation will have a quadratic runtime cost in the total sequence length
+  - to get a linear runtime cost, you must switch to one of the alternatives below:
+    - build a list and use [`str.join()`](https://docs.python.org/3/library/stdtypes.html#str.join) at the end
+    - write to an [`io.StringIO`](https://docs.python.org/3/library/io.html#io.StringIO) instance and retrieve its value when complete
   - see `test_concat_repeat()`
 - Two or more string literals (i.e. the ones enclosed between quotes) next to each other are automatically concatenated
   - see `test_concat_string_literal()`
@@ -50,6 +54,7 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
 - See also:
   - [Text Sequence Type - str](https://docs.python.org/3/library/stdtypes.html#textseq)
     - strings are examples of sequence types, and support the common operations supported by such types
+    - see `test_text_sequence_type()`
   - [String Methods](https://docs.python.org/3/library/stdtypes.html#string-methods)
     - strings support a large number of methods for basic transformations and searching
     - see `test_string_methods()`
