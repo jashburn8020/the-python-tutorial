@@ -4,7 +4,7 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
 
 ## 3. An Informal Introduction to Python
 
-- See examples in [`c03_an_informal_introduction_to_python.py`](src/c03_an_informal_introduction_to_python.py)
+- Based on <https://docs.python.org/3/tutorial/introduction.html>
 
 ### Numbers
 
@@ -22,9 +22,11 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
 
 ### Strings
 
+- See [`strings_test.py`](src/ch03/strings_test.py)
 - Strings can be enclosed in single quotes (`'...'`) or double quotes (`"..."`)
   - `\` can be used to escape quotes
 - If you don't want characters prefaced by `\` to be interpreted as special characters, you can use **raw strings** by adding an `r` before the first quote
+  - `r"c:\some\name"`
   - see `test_raw_strings()`
 - String literals can span **multiple lines**
   - one way is using triple-quotes: `"""..."""` or `'''...'''`
@@ -32,60 +34,84 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
     - possible to prevent this by adding a `\` at the end of the line
   - see `test_multiline()`
 - Strings can be **concatenated** with the `+` operator, and **repeated** with `*`
+  - `some_str = 2 * "pa" + "dum"`
   - repeated concatenation will have a quadratic runtime cost in the total sequence length
   - to get a linear runtime cost, you must switch to one of the alternatives below:
     - build a list and use [`str.join()`](https://docs.python.org/3/library/stdtypes.html#str.join) at the end
+      - `strings = ["some", "strings"]`
+      - `" ".join(strings)`
     - write to an [`io.StringIO`](https://docs.python.org/3/library/io.html#io.StringIO) instance and retrieve its value when complete
+      - `buffer = io.StringIO()`
+      - `buffer.write("some")`
+      - `stringio_content = buffer.getvalue()`
   - see `test_concat_repeat()`
 - Two or more string literals (i.e. the ones enclosed between quotes) next to each other are automatically concatenated
+  - `some_str = "Breaking a long " "string"`
   - see `test_concat_string_literal()`
 - Strings can be **indexed** (subscripted), with the first character having index 0
   - there is no separate character type; a character is simply a string of size one
   - indices may also be negative numbers, to start counting from the right
+  - `some_str[0]`
   - see `test_string_index()`
 - **Slicing** is also supported
   - allows you to obtain substring
+  - `some_str[2:4]`
   - see `test_string_slice()`
 - Python strings cannot be changed - they are **immutable**
   - assigning to an indexed position in the string results in an error
   - see `test_immutable_string()`
 - The built-in function **`len()`** returns the length of a string
-  - `test_string_len()`
+  - `len(some_str)`
+  - see `test_string_len()`
 - See also:
   - [Text Sequence Type - str](https://docs.python.org/3/library/stdtypes.html#textseq)
-    - strings are examples of sequence types, and support the common operations supported by such types
+    - strings are examples of sequence types, and support the [common operations](https://docs.python.org/3/library/stdtypes.html#common-sequence-operations) supported by such types
     - see `test_text_sequence_type()`
   - [String Methods](https://docs.python.org/3/library/stdtypes.html#string-methods)
     - strings support a large number of methods for basic transformations and searching
     - see `test_string_methods()`
   - [Formatted string literals](https://docs.python.org/3/reference/lexical_analysis.html#f-strings)
     - string literals that have embedded expressions
+      - `name = "Fred"`
+      - `f"He said his name is {name!r}"`
     - see `test_formatted_string_literals()`
   - [Format String Syntax](https://docs.python.org/3/library/string.html#formatstrings)
     - information about string formatting with `str.format()`
+    - `"{1}, {0}, {2}".format("a", "b", "c")`
     - see `test_format_string_syntax()`
   - [printf-style String Formatting](https://docs.python.org/3/library/stdtypes.html#old-string-formatting)
     - the old formatting operations invoked when strings are the left operand of the `%` operator are described in more detail here
 
 ### Lists
 
+- See [`lists_test.py`](src/ch03/lists_test.py)
 - A list can be written as a list of comma-separated values (items) between square brackets
+  - `[1, 4, 9, 16, 25]`
 - Lists might contain items of different types, but usually the items all have the same type
 - Lists can be **indexed** and **sliced**
   - all slice operations return a new list containing the requested elements
   - slice returns a shallow copy of the list
+  - `squares[2]`
+  - `squares[2:]`
   - see `test_list_index_slice()`
 - Lists also support operations like **concatenation** (`+`)
+  - `squares += [16, 25]`
   - see `test_list_concat()`
 - Lists are a **mutable** type, i.e. it is possible to change their content
+  - `cubes[3] = 64`
   - see `test_list_mutable()`
 - You can also add new items at the end of the list, by using the **`append()`** method
+  - `squares.append(4 ** 2)`
   - see `test_list_append()`
 - **Assignment to slices** is also possible, and this can even change the size of the list or clear it entirely
+  - `letters[1:3] = ["B", "C"]`
+  - `letters[:] = []`
   - see `test_list_assign_to_slice()`
 - The built-in function **`len()`** also applies to lists
+  - `len(["a", "b", "c", "d", "e"])`
   - see `test_list_len()`
 - It is possible to **nest** lists
+  - `[["a", "b", "c"], [1, 2]]`
   - see `test_list_nest()`
 
 ## 4. More Control Flow Tools
