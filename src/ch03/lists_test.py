@@ -5,7 +5,7 @@ from typing import List, Union
 
 def test_list_index_slice() -> None:
     """List indexing and slicing."""
-    squares = [1, 4, 9, 16, 25]
+    squares: List[int] = [1, 4, 9, 16, 25]
     assert squares[4] == 25
     assert squares[2] == squares[-3]
     assert squares[2:] == [9, 16, 25]  # new list
@@ -18,28 +18,28 @@ def test_list_index_slice() -> None:
 
 def test_list_concat() -> None:
     """List concatenation."""
-    squares = [1, 4, 9]
+    squares: List[int] = [1, 4, 9]
     squares += [16, 25]
     assert squares == [1, 4, 9, 16, 25]
 
 
 def test_list_mutable() -> None:
     """Lists are mutable."""
-    cubes = [1, 8, 27, 65]
+    cubes: List[int] = [1, 8, 27, 65]
     cubes[3] = 64
     assert cubes == [1, 8, 27, 64]
 
 
 def test_list_append() -> None:
     """Appending to a list."""
-    squares = [1, 4, 9]
+    squares: List[int] = [1, 4, 9]
     squares.append(4 ** 2)
     assert squares == [1, 4, 9, 16]
 
 
 def test_list_assign_to_slice() -> None:
     """Assignment to slices."""
-    letters = ["a", "b", "c", "d", "e"]
+    letters: List[str] = ["a", "b", "c", "d", "e"]
     letters[1:3] = ["B", "C"]
     assert letters == ["a", "B", "C", "d", "e"]
 
@@ -59,8 +59,8 @@ def test_list_len() -> None:
 
 def test_list_nest() -> None:
     """Nested list."""
-    letters = ["a", "b", "c"]
-    numbers = [1, 2]
+    letters: List[str] = ["a", "b", "c"]
+    numbers: List[int] = [1, 2]
     letters_and_numbers: List[Union[List[int], List[str]]] = [letters, numbers]
 
     assert letters_and_numbers == [["a", "b", "c"], [1, 2]]

@@ -2,6 +2,43 @@
 
 Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.html)
 
+- [The Python Tutorial](#the-python-tutorial)
+  - [3. An Informal Introduction to Python](#3-an-informal-introduction-to-python)
+    - [Numbers](#numbers)
+    - [Strings](#strings)
+    - [Lists](#lists)
+  - [4. More Control Flow Tools](#4-more-control-flow-tools)
+    - [`if` Statements](#if-statements)
+    - [`for` Statements](#for-statements)
+    - [The `range()` Function](#the-range-function)
+    - [`break` and `continue` Statements, and `else` Clauses on Loops](#break-and-continue-statements-and-else-clauses-on-loops)
+    - [`pass` Statements](#pass-statements)
+    - [Defining Functions](#defining-functions)
+    - [More on Defining Functions](#more-on-defining-functions)
+      - [Default Argument Values](#default-argument-values)
+      - [Keyword Arguments](#keyword-arguments)
+      - [Special parameters](#special-parameters)
+        - [Positional-or-Keyword Arguments](#positional-or-keyword-arguments)
+        - [Positional-Only Parameters](#positional-only-parameters)
+        - [Keyword-Only Arguments](#keyword-only-arguments)
+      - [Arbitrary Argument Lists](#arbitrary-argument-lists)
+      - [Unpacking Argument Lists](#unpacking-argument-lists)
+      - [Lambda Expressions](#lambda-expressions)
+      - [Function Annotations](#function-annotations)
+  - [5. Data Structures](#5-data-structures)
+    - [More on Lists](#more-on-lists)
+      - [Using Lists as Stacks](#using-lists-as-stacks)
+      - [Using Lists as Queues](#using-lists-as-queues)
+      - [List Comprehensions](#list-comprehensions)
+      - [Nested List Comprehensions](#nested-list-comprehensions)
+    - [The `del` Statement](#the-del-statement)
+    - [Tuples and Sequences](#tuples-and-sequences)
+    - [Sets](#sets)
+    - [Dictionaries](#dictionaries)
+    - [Looping Techniques](#looping-techniques)
+    - [More on Conditions](#more-on-conditions)
+  - [Source](#source)
+
 ## 3. An Informal Introduction to Python
 
 - Based on <https://docs.python.org/3/tutorial/introduction.html>
@@ -302,6 +339,331 @@ def f(pos1, pos2, /, pos_or_kwd, *, kwd1, kwd2):
 - Return annotations are defined by a literal `->`, followed by an expression, between the parameter list and the colon denoting the end of the `def` statement
 - Example: `def function_annotations(ham: str, eggs: str = "eggs") -> str`
 
+## 5. Data Structures
+
+- Based on <https://docs.python.org/3/tutorial/datastructures.html>
+
+### More on Lists
+
+- See [`more_lists_test.py`](src/ch05/more_lists_test.py)
+- **`list.append(x)`**
+  - add an item to the end of the list
+  - equivalent to `a[len(a):] = [x]`
+  - see `test_append()`
+- **`list.extend(iterable)`**
+  - extend the list by appending all the items from the iterable
+  - equivalent to `a[len(a):] = iterable`
+  - see `test_extend()`
+- **`list.insert(i, x)`**
+  - insert an item at a given position
+  - see `test_insert()`
+- **`list.remove(x)`**
+  - remove the first item from the list whose value is equal to `x`
+  - raises a `ValueError` if there is no such item
+  - see `test_remove()`
+- **`list.pop([i])`**
+  - remove the item at the given position in the list, and return it
+  - if no index is specified, `a.pop()` removes and returns the last item in the list
+  - (the square brackets around the `i` denote that the parameter is optional)
+  - see `test_pop()`
+- **`list.clear()`**
+  - remove all items from the list
+  - equivalent to `del a[:]`
+  - see `test_clear()`
+- **`list.index(x[, start[, end]])`**
+  - return zero-based index in the list of the first item whose value is equal to `x`
+  - raises a `ValueError` if there is no such item
+  - the optional arguments `start` and `end` are interpreted as in the slice notation
+    - used to limit the search to a particular subsequence of the list
+    - the returned index is computed relative to the beginning of the full sequence rather than the `start` argument
+  - see `test_index()`
+- **`list.count(x)`**
+  - return the number of times `x` appears in the list
+  - see `test_count()`
+- **`list.sort(key=None, reverse=False)`**
+  - sort the items of the list in place
+    - the arguments can be used for sort customization, see [`sorted()`](https://docs.python.org/3/library/functions.html#sorted) for their explanation
+  - see `test_sort()`
+- **`list.reverse()`**
+  - reverse the elements of the list in place
+  - see `test_reverse()`
+- **`list.copy()`**
+  - return a shallow copy of the list
+  - equivalent to `a[:]`
+  - see `test_sort()`
+- Methods like `insert`, `remove` or `sort` that only modify the list have no return value
+  - this is a design principle for all mutable data structures in Python
+
+#### Using Lists as Stacks
+
+- See [`stacks_queues_test.py`](src/ch05/stacks_queues_test.py)
+- Stack, where the last element added is the first element retrieved (LIFO)
+  - to add an item to the top of the stack, use **`append()`**
+  - to retrieve an item from the top of the stack, use **`pop()`** without an explicit index
+- See `test_list_stack()`
+
+#### Using Lists as Queues
+
+- See [`stacks_queues_test.py`](src/ch05/stacks_queues_test.py)
+- Queue, where the first element added is the first element retrieved (FIFO)
+- Lists are not efficient for this purpose
+  - while `append`s and `pop`s from the end of list are fast, doing `insert`s or `pop`s from the beginning of a list is slow
+    - all of the other elements have to be shifted by one
+    - O(n) memory movement costs
+  - see `test_list_queue_slow()`
+- To implement a queue, use [`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque) which was designed to have fast `append`s and `pop`s from both ends
+  - approximately O(1) performance
+  - `deque([iterable[, maxlen]])`
+  - see `test_list_queue_fast()`
+
+#### List Comprehensions
+
+- See [`list_comprehensions_test.py`](src/ch05/list_comprehensions_test.py)
+- A concise way to create lists
+  - each element is the result of some operations applied to each member of another sequence or iterable
+  - a subsequence of those elements that satisfy a certain condition
+- Consists of brackets containing
+  - an expression,
+  - followed by a `for` clause,
+  - then zero or more `for` or `if` clauses
+- The result will be a new list
+- Some examples
+  - `[num ** 2 for num in range(5)]`
+  - `[(i, j) for i in [1, 2, 3] for j in [3, 1, 4] if i != j]`
+  - `[elem for elem in [-4, -2, 0, 2, 4] if elem >= 0]`
+  - `[str(round(math.pi, precision)) for precision in range(1, 4)]`
+  - `[letter.upper() for letter in "abcde"]`
+
+#### Nested List Comprehensions
+
+- See [`list_comprehensions_test.py`](src/ch05/list_comprehensions_test.py)
+- The initial expression in a list comprehension can be any arbitrary expression, including another list comprehension
+- `[[row[elem] for row in matrix] for elem in range(4)]`
+- See `test_nested_listcomp()`
+
+### The `del` Statement
+
+- See [`del_test.py`](src/ch05/del_test.py)
+- Remove an item from a list given its index instead of its value
+- Can also be used to remove slices from a list or clear the entire list
+
+### Tuples and Sequences
+
+- See [`tuples_sequences_test.py`](src/ch05/tuples_sequences_test.py)
+- There are 3 basic sequence types: lists, tuples, and range objects
+  - additional sequence types tailored for processing of [binary data](https://docs.python.org/3/library/stdtypes.html#binaryseq) and [text strings](https://docs.python.org/3/library/stdtypes.html#textseq)
+- Empty [tuple](https://docs.python.org/3/library/stdtypes.html#tuples)s are constructed by an empty pair of parentheses
+- A tuple with one item (singleton) is constructed by following a value with a comma
+  - not sufficient to enclose a single value in parentheses
+  - `single_elem_tuple = (1,)`
+- A tuple consists of a number of values separated by commas
+  - may be constructed with or without surrounding parentheses
+  - may be constructed using the [`tuple()`](https://docs.python.org/3/library/stdtypes.html#tuple) built-in
+  - usually contain a heterogeneous sequence of elements
+  - `packed_tuple: Tuple[int, int, str] = 1, 2, "c"`
+- Tuple packing - multiple values can be packed together in a tuple
+- Sequence unpacking
+  - works for any sequence (but not `str`) on the right-hand side
+  - requires that there are as many variables on the left side of the equals sign as there are elements in the sequence
+  - `one, two, three = packed_tuple`
+  - multiple assignment is really just a combination of tuple packing and sequence unpacking
+- Tuples
+  - elements are accessed via unpacking or indexing (or even by attribute in the case of `namedtuples`)
+  - may be nested
+  - are immutable
+  - implement all of the [common sequence operations](https://docs.python.org/3/library/stdtypes.html#typesseq-common)
+- For heterogeneous collections of data where access by name is clearer than access by index, [`collections.namedtuple()`](https://docs.python.org/3/library/collections.html#collections.namedtuple) may be a more appropriate choice than a simple tuple object
+  - see also <https://github.com/jashburn8020/python-type-hints-mypy#named-tuples>
+
+### Sets
+
+- See [`sets_test.py`](src/ch05/sets_test.py)
+- A [set](https://docs.python.org/3/library/stdtypes.html#set-types-set-frozenset) object is an unordered collection of distinct _hashable_ objects
+  - basic uses include membership testing and eliminating duplicate entries
+- Curly braces or the `set([iterable])` function can be used to create sets
+  - to create an empty set you have to use `set()`, not `{}`; the latter creates an empty dictionary
+- Being an _unordered collection_, sets
+  - do not record element position or order of insertion
+  - do not support indexing, slicing, or other sequence-like behavior
+- The set type is _mutable_
+  - contents can be changed using methods like `add()` and `remove()`
+  - since it is mutable, it has no hash value and cannot be used as either a dictionary key or as an element of another set
+  - the `frozenset` type is immutable
+- Similarly to list comprehensions, set comprehensions are also supported
+- Set objects support mathematical operations like
+  - difference:
+    - `difference(*others)`
+    - `set - other - ...`
+    - return a new set with elements in the set that are not in the others
+  - symmetric difference:
+    - `symmetric_difference(other)`
+    - `set ^ other`
+    - return a new set with elements in either the set or other but not both
+  - union
+    - `union(*others)`
+    - `set | other | ...`
+    - return a new set with elements from the set and all others
+  - intersection
+    - `intersection(*others)`
+    - `set & other & ...`
+    - return a new set with elements common to the set and all others
+  - subset
+    - `issubset(other)`
+    - `set <= other`
+    - test whether every element in the set is in other
+  - proper subset
+    - `set < other`
+    - test whether the set is a proper subset of other, that is, `set <= other and set != other`
+  - superset
+    - `issuperset(other)`
+    - `set >= other`
+    - test whether every element in other is in the set
+  - proper superset
+    - `set > other`
+    - test whether the set is a proper superset of other, that is, `set >= other and set != other`
+  - disjoint
+    - `isdisjoint(other)`
+    - return `True` if the set has no elements in common with other
+    - sets are disjoint if and only if their intersection is the empty set
+- The method versions of the operations will accept any iterable as an argument
+  - in contrast, their operator based counterparts require their arguments to be sets
+
+### Dictionaries
+
+- See [`dictionaries_test.py`](src/ch05/dictionaries_test.py)
+- [Dictionaries](https://docs.python.org/3/library/stdtypes.html#typesmapping) are indexed by keys, which can be any _immutable_ type
+- It is best to think of a dictionary as a set of key:value pairs, with the requirement that the keys are unique (within one dictionary)
+- Constructing a dictionary:
+  - a pair of braces creates an empty dictionary: `{}`
+  - placing a comma-separated list of key:value pairs within the braces adds initial key:value pairs to the dictionary
+    - `{"banana": 5, "cherry": 4, "durian": 2}`
+  - the `dict()` constructor builds dictionaries directly from sequences of key-value pairs
+    - `dict([("banana", 5), ("cherry", 4), ("durian", 2)])`
+  - when the keys are simple strings, it is sometimes easier to specify pairs using keyword arguments
+    - `dict(banana=5, cherry=4, durian=2)`
+  - see `test_construct_dictionary()`
+  - dict comprehensions can be used to create dictionaries from arbitrary key and value expressions
+    - `{even: even ** 2 for even in range(10) if even % 2 == 0}`
+    - see `test_dict_comprehension()`
+- The main operations on a dictionary are storing a value with some key and extracting the value given the key
+  - `fruits["banana"] = 5`
+  - if you store using a key that is already in use, the old value associated with that key is forgotten
+- It is also possible to delete a key:value pair with `del`
+  - `del fruits["banana"]`
+- See `test_store_extract_del()`
+- Dictionaries compare equal if and only if they have the same (key, value) pairs (regardless of ordering)
+- Dictionaries preserve _insertion order_
+- Some other [operations](https://docs.python.org/3/library/stdtypes.html#mapping-types-dict) that dictionaries support:
+  - **`list(d)`**
+    - return a list of all the keys used in the dictionary `d` in insertion order
+    - use **`sorted(d)`** to get a sorted list of keys
+  - **`len(d)`**
+    - return the number of items in the dictionary `d`
+  - **`key in d`**
+    - return `True` if `d` has a key `key`
+    - see `test_list_len_key_in()`
+  - **`clear()`**
+    - remove all items from the dictionary
+  - **`copy()`**
+    - return a shallow copy of the dictionary
+  - **`setdefault(key[, default])`**
+    - if `key` is in the dictionary, return its value
+    - if not, insert key with a value of `default` and return `default`
+    - `default` defaults to `None`
+  - **`update([other])`**
+    - update the dictionary with the key/value pairs from `other`, overwriting existing keys
+    - accepts either another dictionary object or an iterable of key/value pairs (as tuples or other iterables of length two)
+    - if keyword arguments are specified, the dictionary is then updated with those key/value pairs
+  - **`get(key[, default])`**
+    - return the value for `key` if `key` is in the dictionary, else `default`
+    - if `default` is not given, it defaults to `None`, so that this method never raises a `KeyError`
+  - **`pop(key[, default])`**
+    - if `key` is in the dictionary, remove it and return its value, else return `default`
+    - if `default` is not given and `key` is not in the dictionary, a `KeyError` is raised
+  - **`popitem()`**
+    - remove and return a `(key, value)` pair from the dictionary
+    - pairs are returned in LIFO order
+    - see `test_more_set_get()`
+- **View objects**
+  - the following operations return view objects:
+    - **`items()`**
+      - return a new view of the dictionary's items (`(key, value)` pairs): [`ItemsView`](https://docs.python.org/3/library/collections.abc.html?highlight=itemsview#collections.abc.ItemsView)
+    - **`keys()`**
+      - return a new view of the dictionary's keys: [`KeysView`](https://docs.python.org/3/library/collections.abc.html?highlight=itemsview#collections.abc.KeysView)
+    - **`values()`**
+      - return a new view of the dictionary's values: [`ValuesView`](https://docs.python.org/3/library/collections.abc.html?highlight=itemsview#collections.abc.ValuesView)
+      - equality comparison between one `dict.values()` view and another will always return `False`
+  - provide a dynamic view on the dictionary's entries
+  - when the dictionary changes, the view reflects these changes
+  - keys views are set-like since their entries are unique and hashable
+  - if all values are hashable, so that (key, value) pairs are unique and hashable, then the items view is also set-like
+  - values views are not treated as set-like since the entries are generally not unique
+  - for set-like views, all of the operations defined for the abstract base class `collections.abc.Set` are available (for example, `==`, `<`, and `^`)
+  - see `test_view_objects()`
+  - `types.MappingProxyType` can be used to create a read-only view of a `dict`
+    - see `test_mappingproxytype()`
+
+### Looping Techniques
+
+- See [`looping_techniques_test.py`](src/ch05/looping_techniques_test.py)
+- When looping through _dictionaries_, the key and corresponding value can be retrieved at the same time using the **`items()`** method
+  - `for name, value in knights_dict.items()`
+  - see `test_dict_items()`
+- When looping through a _sequence_, the position index and corresponding value can be retrieved at the same time using the **`enumerate(iterable, start=0)`** function
+  - `for index, value in enumerate(["tic", "tac", "toe"], start=1)`
+  - see `test_seq_enumerate()`
+- To loop over _two or more sequences_ at the same time, the entries can be paired with the **`zip(*iterables)`** function
+  - returns an iterator of tuples; the iterator stops when the shortest input iterable is exhausted
+  - `for attr, value in zip(attrs, values)`
+  - see `test_seqs_zip()`
+- To loop over a _sequence in reverse_, first specify the sequence in a forward direction and then call the **`reversed(seq)`** function
+  - returns a reverse iterator
+  - `for fruit in reversed(["banana", "cherry", "durian"])`
+  - see `test_seq_reversed()`
+- To loop over a _sequence in sorted order_, use the **`sorted(iterable, *, key=None, reverse=False)`** function
+  - `key` specifies a one-argument function to be called on each list element prior to making comparisons
+  - returns a new sorted list from the items in iterable
+  - `for fruit_name in sorted(fruits_amount, key=lambda fruit: fruit[1])`
+  - see `test_seq_sorted()`
+- It is sometimes tempting to change a list while you are looping over it; however, it is often simpler and safer to create a new list instead
+  - see `test_changing_list()`
+
+### More on Conditions
+
+- The conditions used in `while` and `if` statements can contain any operators, not just comparisons
+- The comparison operators `in` and `not in`
+  - check whether a value occurs (does not occur) in a sequence
+- The operators `is` and `is not` compare whether two objects are really the same object
+  - this only matters for mutable objects like lists
+- All comparison operators have the same priority
+  - lower than that of all numerical operators
+- Comparisons can be chained
+  - e.g., `a < b == c` tests whether `a` is less than `b` and moreover `b` equals `c`
+- Comparisons may be combined using the Boolean operators `and` and `or`
+  - short-circuit operators
+- The outcome of a comparison (or of any other Boolean expression) may be negated with `not`
+- Boolean operators have lower priorities than comparison operators
+  - between them, `not` has the highest priority and `or` the lowest
+  - `A and not B or C` is equivalent to `(A and (not B)) or C`
+- Assignment inside expressions must be done explicitly with the **walrus operator** `:=` (Python 3.8)
+  - see [PEP 572 -- Assignment Expressions](https://www.python.org/dev/peps/pep-0572/)
+
+```python
+# Handle a matched regex
+if (match := pattern.search(data)) is not None:
+    # Do something with match
+
+# A loop that can't be trivially rewritten using 2-arg iter()
+while chunk := file.read(8192):
+    process(chunk)
+
+# Reuse a value that's expensive to compute
+[y := f(x), y**2, y**3]
+
+# Share a subexpression between a comprehension filter clause and its output
+filtered_data = [y for x in data if (y := f(x)) is not None]
+```
+
 ## Source
 
-- "The Python Tutorial." _The Python Tutorial - Python 3.8.3 Documentation_, 19 May 2020, docs.python.org/3/tutorial/index.html.
+- "The Python Tutorial." _The Python Tutorial - Python 3.8.3 Documentation_, 19 May 2020, [docs.python.org/3/tutorial/index.html](https://docs.python.org/3/tutorial/index.html).
