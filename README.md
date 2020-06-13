@@ -37,6 +37,18 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
     - [Dictionaries](#dictionaries)
     - [Looping Techniques](#looping-techniques)
     - [More on Conditions](#more-on-conditions)
+  - [6. Modules](#6-modules)
+    - [More on Modules](#more-on-modules)
+      - [Executing modules as scripts](#executing-modules-as-scripts)
+      - [The Module Search Path](#the-module-search-path)
+      - ["Compiled" Python files](#compiled-python-files)
+    - [Standard Modules](#standard-modules)
+    - [The `dir()` Function](#the-dir-function)
+    - [Packages](#packages)
+      - [Importing `*` From a Package](#importing--from-a-package)
+      - [Intra-package References](#intra-package-references)
+      - [Packages in Multiple Directories](#packages-in-multiple-directories)
+      - [Namespace packages](#namespace-packages)
   - [Source](#source)
 
 ## 3. An Informal Introduction to Python
@@ -662,6 +674,302 @@ while chunk := file.read(8192):
 
 # Share a subexpression between a comprehension filter clause and its output
 filtered_data = [y for x in data if (y := f(x)) is not None]
+```
+
+## 6. Modules
+
+- A module is a file containing Python definitions and statements
+- The file name is the module name with the suffix `.py` appended
+- Within a module, the module's name (as a string) is available as the value of the global variable `__name__`
+- Consider a file called `fibo.py` containing a function, `fib(n)`, created in the current directory
+  - **`import fibo`**
+    - this does not enter the names of the function defined in `fibo` directly in the current symbol table
+    - it only enters the module name `fibo` there
+  - using the module name you can access its function
+    `fibo.fib(1000)`
+
+### More on Modules
+
+- A module can contain executable statements as well as function definitions
+  - these statements are intended to initialize the module
+    - they are executed only the _first_ time the module name is encountered in an `import` statement
+    - they are also run if the file is executed as a script
+  - function definitions in a module are also 'statements' that are 'executed'
+    - execution of a module-level function definition enters the function name in the module's global symbol table
+  - see [`demo_import.py`](src/ch06/demo_import.py) and [`fibo.py`](src/ch06/fibo.py)
+
+```console
+$ python ch06/demo_import.py
+Initialise fibo
+Initialise demo_import
+0 1 1 2 3
+```
+
+- Each module has its own private symbol table
+  - used as the global symbol table by all functions defined in the module
+- Imported module names are placed in the importing module's global symbol table
+- There is a variant of the `import` statement that imports names from a module directly into the importing module's symbol table
+  - **`from fibo import fib`**
+  - this does not introduce the module name from which the imports are taken in the local symbol table
+    - in the example, `fibo` is not defined
+- There is even a variant to import all names that a module defines
+  - `from fibo import *`
+  - this imports all names except those beginning with an underscore (`_`)
+  - not recommended because it introduces an unknown set of names into the interpreter, possibly hiding some things you have already defined
+- If the module name is followed by `as`, then the name following `as` is bound directly to the imported module
+  - **`import fibo as fib`**
+  - `fib.fib(500)`
+  - this is effectively importing the module in the same way that `import fibo` will do, with the only difference of it being available as `fib`
+  - it can also be used when utilising `from` with similar effects
+    - **`from fibo import fib as fibonacci`**
+    - `fibonacci(500)`
+
+#### Executing modules as scripts
+
+- When you run a Python module with `python fibo.py <arguments>`
+  - the code in the module will be executed, just as if you imported it
+  - but with `__name__` set to `"__main__"`
+- By adding the following code at the end of your module, you can make the file usable as a script as well as an importable module
+  - see [`demo_import.py`](src/ch06/demo_import.py)
+
+```python
+if __name__ == "__main__":
+    import sys
+
+    fibo.fib(int(sys.argv[1]))
+```
+
+```console
+$ python ch06/demo_import.py 10
+Initialise fibo
+Initialise demo_import
+0 1 1 2 3
+0 1 1 2 3 5 8
+```
+
+#### The Module Search Path
+
+- When a module named `spam` is imported
+  - the interpreter first searches for a built-in module with that name
+  - if not found, it then searches for a file named `spam.py` in a list of directories given by the variable `sys.path`
+- **`sys.path`** is initialized from these locations:
+  - the directory containing the input script (or the current directory when no file is specified)
+  - `PYTHONPATH` (a list of directory names, with the same syntax as the shell variable `PATH`)
+  - the installation-dependent default
+- Note: On file systems which support **symlinks**, the directory containing the input script is calculated after the symlink is followed
+  - in other words the directory containing the symlink is _not_ added to the module search path
+- After initialization, Python programs can modify `sys.path`
+  - the directory containing the script being run is placed at the beginning of the search path, ahead of the standard library path
+    - scripts in that directory will be loaded instead of modules of the same name in the library directory
+- See [`syspath.py`](src/ch06/syspath.py)
+- `sys.path` from a script outside a virtual environment:
+
+```console
+$ python ch06/syspath.py
+['/path/to/directory/containing/script', '/usr/lib/python2.7', '/usr/lib/python2.7/plat-x86_64-linux-gnu', '/usr/lib/python2.7/lib-tk', '/usr/lib/python2.7/lib-old', '/usr/lib/python2.7/lib-dynload', '/usr/local/lib/python2.7/dist-packages', '/usr/lib/python2.7/dist-packages']
+```
+
+- `sys.path` from a script in a virtual environment:
+
+```console
+$ python ch06/syspath.py
+['/path/to/directory/containing/script', '/usr/lib/python38.zip', '/usr/lib/python3.8', '/usr/lib/python3.8/lib-dynload', '/path/to/venv/lib/python3.8/site-packages']
+```
+
+#### "Compiled" Python files
+
+- To speed up loading modules, Python caches the compiled version of each module in the `__pycache__` directory under the name `module.version.pyc`, where the version encodes the format of the compiled file; it generally contains the Python version number
+  - e.g., `fibo.cpython-38.pyc`
+- Python does not check the cache in two circumstances
+  - it always recompiles and does not store the result for the module that's loaded directly from the command line
+  - it does not check the cache if there is no source module
+    - to support a non-source (compiled only) distribution, the compiled module must be in the source directory, and there must not be a source module
+- A program doesn't run any faster when it is read from a `.pyc` file than when it is read from a `.py` file
+  - the only thing that's faster about `.pyc` files is the speed with which they are loaded
+- See [PEP 3147 -- PYC Repository Directories](https://www.python.org/dev/peps/pep-3147/)
+
+### Standard Modules
+
+- Python comes with a library of standard modules, described in a separate document, the Python Library Reference
+- Some modules are built into the interpreter
+  - provide access to operations that are not part of the core of the language
+  - built in either for efficiency or to provide access to operating system primitives such as system calls
+  - the set of such modules is a configuration option which also depends on the underlying platform
+    - e.g., the `winreg` module is only provided on Windows systems
+  - one particular module deserves some attention: `sys`, which is built into every Python interpreter
+
+### The `dir()` Function
+
+- The built-in function [`dir()`](https://docs.python.org/3/library/functions.html#dir) is used to find out which names a module defines
+  - variables, modules, functions, etc.
+  - returns a sorted list of strings
+- Does not list the names of built-in functions and variables
+  - defined in the standard module `builtins`
+    - [built-in functions](https://docs.python.org/3/library/functions.html#built-in-funcs)
+    - [built-in constants](https://docs.python.org/3/library/constants.html#built-in-consts)
+
+### Packages
+
+- Packages are a way of structuring Python's module namespace by using "dotted module names"
+  - e.g., the module name `A.B` designates a submodule named `B` in a package named `A`
+- Just like the use of modules saves the authors of different modules from having to worry about each other's global variable names, the use of dotted module names saves the authors of multi-module packages like NumPy or Pillow from having to worry about each other's module names
+- Suppose you want to design a collection of modules (a "package") for the uniform handling of sound files and sound data
+
+```text
+sound/                          Top-level package
+      __init__.py               Initialize the sound package
+      formats/                  Subpackage for file format conversions
+              __init__.py
+              wavread.py
+              wavwrite.py
+              aiffread.py
+              aiffwrite.py
+              ...
+      effects/                  Subpackage for sound effects
+              __init__.py
+              echo.py
+              surround.py
+              ...
+      filters/                  Subpackage for filters
+              __init__.py
+              equalizer.py
+              vocoder.py
+              ...
+```
+
+- When importing the package, Python searches through the directories on `sys.path` looking for the package subdirectory
+- The **`__init__.py`** files are required to make Python treat directories containing the file as (regular) packages
+  - (see also [namespace packages](#namespace-packages))
+  - prevents directories with a common name, such as `string`, unintentionally hiding valid modules that occur later on the module search path
+  - in the simplest case, can just be an empty file
+  - can also execute initialization code for the package or set the `__all__` variable (described later)
+- Users of the package can import individual modules from the package
+  - `import sound.effects.echo`
+    - loads the submodule `sound.effects.echo`
+    - referenced with its full name
+    - `sound.effects.echo.echofilter(...)`
+  - `from sound.effects import echo`
+    - also loads the submodule `echo`, and makes it available without its package prefix
+    - `echo.echofilter(...)`
+  - `from sound.effects.echo import echofilter`
+    - loads the submodule `echo`, but this makes its function `echofilter()` directly available
+    - `echofilter(...)`
+- When using syntax like **`import item.subitem.subsubitem`**
+  - each item except for the last must be a package
+  - the last item can be a module or a package but can't be a class or function or variable defined in the previous item
+- When using **`from package import item`**
+  - `item` can be either a submodule (or subpackage) of the package, or some other name defined in the package, like a function, class or variable
+  - the `import` statement first tests whether the item is defined in the package
+    - if not, it assumes it is a module and attempts to load it
+    - if it fails to find it, an `ImportError` exception is raised
+
+#### Importing `*` From a Package
+
+- What happens when the user writes `from sound.effects import *`?
+- If a package's `__init__.py` code defines a list named **`__all__`**
+  - it is taken to be the list of module names that should be imported
+  - e.g., the file `sound/effects/__init__.py` could contain the following code:
+    - `__all__ = ["echo", "surround", "reverse"]`
+- If `__all__` is not defined
+  - does _not_ import all submodules from the package `sound.effects` into the current namespace
+  - only ensures that the package `sound.effects` has been imported (possibly running any initialization code in `__init__.py`) and then imports whatever names are defined in the package
+    - includes any names defined (and submodules explicitly loaded) by `**init**.py
+    - also includes any submodules of the package that were explicitly loaded by previous `import` statements
+
+```python
+import sound.effects.echo
+import sound.effects.surround
+from sound.effects import *
+```
+
+- In this example, the `echo` and `surround` modules are imported in the current namespace because they are defined in the `sound.effects` package when the `from...import statement` is executed
+  - this also works when `__all__` is defined
+- `import *` is considered bad practice in production code
+- `from package import specific_submodule` is the recommended notation unless the importing module needs to use submodules with the same name from different packages
+
+#### Intra-package References
+
+```text
+sound/
+      __init__.py
+      formats/
+              __init__.py
+              ...
+      effects/
+              __init__.py
+              echo.py
+              surround.py
+              ...
+      filters/
+              __init__.py
+              equalizer.py
+              vocoder.py
+              ...
+```
+
+- When packages are structured into subpackages, you can use **absolute imports** to refer to submodules of siblings packages
+  - e.g., if the module `sound.filters.vocoder` needs to use the `echo` module in the `sound.effects` package, it can use `from sound.effects import echo`
+- You can also write **relative imports**, with the `from module import name` form
+  - use leading dots to indicate the current and parent packages involved in the relative import
+  - 1 leading dot means the current package where the module making the import exists
+  - 2 dots means up one package level, and 3 dots is up two levels
+  - e.g., from the `surround` module, you might use:
+
+```python
+from . import echo
+from .. import formats
+from ..filters import equalizer
+```
+
+#### Packages in Multiple Directories
+
+- Packages support one more special attribute, **`__path__`**
+  - initialized to be a list containing the name of the directory holding the package's `__init__.py` before the code in that file is executed
+  - can be modified; doing so affects future searches for modules and subpackages contained in the package
+- While this feature is not often needed, it can be used to extend the set of modules found in a package
+
+#### Namespace packages
+
+- A [PEP 420](https://www.python.org/dev/peps/pep-0420/) package which serves only as a container for subpackages
+- A mechanism for splitting a single Python package across multiple directories on disk
+- Have no `__init__.py` file
+- Multiple portions of a namespace package can be installed into the same directory, or into separate directories
+- Suppose there are two portions which define `foo.bar` and `foo.baz`
+  - `foo` is a namespace package
+  - if these are installed in the same location
+    - a single directory `foo` would be in a directory that is on `sys.path`
+    - inside `foo` would be two directories, `bar` and `baz`
+  - if the portions are installed in different locations
+    - two different `foo` directories would be in directories that are on `sys.path`
+      - `foo/bar` would be in one of these `sys.path` entries, and `foo/baz` would be in the other
+    - it is also possible to have the `foo.bar` portion installed in a directory on `sys.path`, and have the `foo.baz` portion provided in a zip file, also on `sys.path`
+- Further example:
+
+```text
+Lib/test/namespace_pkgs
+    project1
+        parent
+            child
+                one.py
+    project2
+        parent
+            child
+                two.py
+```
+
+- Both `parent` and `child` are namespace packages
+  - portions of them exist in different directories, and they do not have `__init__.py` files
+
+```text
+>>> import sys
+>>> sys.path += ['Lib/test/namespace_pkgs/project1', 'Lib/test/namespace_pkgs/project2']
+>>> import parent.child.one
+>>> parent.__path__
+_NamespacePath(['Lib/test/namespace_pkgs/project1/parent', 'Lib/test/namespace_pkgs/project2/parent'])
+>>> parent.child.__path__
+_NamespacePath(['Lib/test/namespace_pkgs/project1/parent/child', 'Lib/test/namespace_pkgs/project2/parent/child'])
+>>> import parent.child.two
+>>>
 ```
 
 ## Source
