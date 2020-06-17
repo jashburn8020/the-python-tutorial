@@ -1,0 +1,10 @@
+{
+  "dict": {
+    "a": "one",
+    "b": 2
+  },
+  "array": [3, 4],
+  "tuple": [5, 6],
+  "boolean": true,
+  "null": null
+}

@@ -49,6 +49,15 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
       - [Intra-package References](#intra-package-references)
       - [Packages in Multiple Directories](#packages-in-multiple-directories)
       - [Namespace packages](#namespace-packages)
+  - [7. Input and Output](#7-input-and-output)
+    - [Fancier Output Formatting](#fancier-output-formatting)
+      - [Formatted String Literals](#formatted-string-literals)
+      - [The String `format()` Method](#the-string-format-method)
+      - [Manual String Formatting](#manual-string-formatting)
+      - [Old String Formatting](#old-string-formatting)
+    - [Reading and Writing Files](#reading-and-writing-files)
+      - [Methods of File Objects](#methods-of-file-objects)
+      - [Saving structured data with json](#saving-structured-data-with-json)
   - [Source](#source)
 
 ## 3. An Informal Introduction to Python
@@ -971,6 +980,212 @@ _NamespacePath(['Lib/test/namespace_pkgs/project1/parent/child', 'Lib/test/names
 >>> import parent.child.two
 >>>
 ```
+
+## 7. Input and Output
+
+### Fancier Output Formatting
+
+- See [`str_repr_test.py`](src/ch07/str_repr_test.py)
+- When you don't need fancy output but just want a quick display of some variables for debugging purposes, you can convert any value to a string with the `repr()` or `str()` functions
+- [**`class str(object='')`**](https://docs.python.org/3/library/stdtypes.html#str)
+  - returns `object.__str__()`, which is the **"informal" or nicely printable** string representation of object
+    - also called by the built-in functions `format()` and `print()`
+    - differs from `object.__repr__()` in that there is no expectation that `__str__()` return a valid Python expression
+  - if `object` does not have a `__str__()` method, then `str()` falls back to returning `repr(object)`
+- [**`repr()`**](https://docs.python.org/3/library/functions.html#repr)
+  - returns a string containing a printable representation of an object
+  - for many types, this function makes an attempt to return a string that would yield an object with the same value when passed to `eval()`
+    - otherwise the representation is a string enclosed in angle brackets that contains the name of the type of the object together with additional information, often including the name and address of the object
+  - typically used for **debugging**
+  - a class can control what this function returns for its instances by defining a `__repr__()` method
+- For objects which don't have a particular representation for human consumption, `str()` will return the same value as `repr()`
+  - many values, such as numbers or structures like lists and dictionaries, have the same representation using either function
+  - strings, in particular, have two distinct representations
+- See also [`Templating`](#templating)
+
+#### Formatted String Literals
+
+- See [`f_string_test.py`](src/ch07/f_string_test.py)
+- A [formatted string literal](https://docs.python.org/3/reference/lexical_analysis.html#f-strings) (also called f-string for short) is a string literal that is prefixed with `f` or `F`
+  - may contain **replacement fields**, which are expressions delimited by curly braces **`{}`**
+    - the grammar for a replacement field:
+      - `replacement_field ::= "{" f_expression ["!" conversion] [":" format_spec] "}"`
+  - the parts of the string outside curly braces are treated literally
+    - except that any doubled curly braces `{{` or `}}` are replaced with the corresponding single curly brace
+  - a single opening curly bracket `{` marks a replacement field, which starts with a Python expression
+  - after the expression, there may be a **conversion field**, introduced by an exclamation point **`!`**
+  - a **format specifier** may also be appended, introduced by a colon **`:`**
+  - a replacement field ends with a closing curly bracket `}`
+- **Expressions** in formatted string literals are treated like regular Python expressions surrounded by parentheses, with a few exceptions
+  - an empty expression is not allowed
+  - both lambda and assignment expressions `:=` must be surrounded by explicit parentheses
+  - can contain line breaks (e.g. in triple-quoted strings), but they cannot contain comments
+  - each expression is evaluated in the context where the formatted string literal appears, in order from left to right
+- If a **conversion** is specified (`!`)
+  - the result of evaluating the expression is converted before formatting
+  - **`!s`** calls `str()` on the result
+  - **`!r`** calls `repr()`
+  - **`!a`** calls `ascii()`
+  - `f"The {animal!s}'s name is {name!r}"`
+  - see `test_conversion_modifiers()`
+- The result is then **formatted** using the `format()` protocol (`:`)
+  - top-level format specifiers may include nested replacement fields
+    - `"result: {value:{width}.{precision}}"`
+    - see `test_format_nested_fields()`
+  - nested fields may include their own conversion fields and format specifiers
+    - may not include more deeply-nested replacement fields
+  - the [format specifier mini-language](https://docs.python.org/3/library/string.html#formatspec) is the same as that used by the string `.format()` method
+    - `f"pi is approximately {math.pi:.3f}"`
+    - `f"{'Sjoerd':10} ==> {table['Sjoerd']:10d}"`
+    - `f"{name + ' ':.<10}{' ' + str(phone):.>10}"`
+    - `f"{timestamp:%d %B %Y %H:%M:%S}"`
+- Formatted string literals may be concatenated, but replacement fields cannot be split across literals
+
+#### The String `format()` Method
+
+- See [`string_format_test.py`](src/ch07/string_format_test.py)
+- `str.format(*args, **kwargs)` perform a string formatting operation
+  - the string on which this method is called can contain **replacement fields** delimited by braces **`{}`**
+  - returns a copy of the string where each replacement field is replaced with the string value of the corresponding argument
+- The `str.format()` method and the `Formatter` class share the same syntax for format strings
+  - the [syntax](https://docs.python.org/3/library/string.html#format-string-syntax) is related to that of [formatted string literals](#formatted-string-literals), but there are differences
+  - the grammar for a replacement field:
+    - `replacement_field ::= "{" [field_name] ["!" conversion] [":" format_spec] "}"`
+  - **`field_name`** itself begins with an **`arg_name`**
+    - if it's a _number_, it refers to a _positional argument_
+      - if the numerical `arg_name`s are 0, 1, 2, ... in sequence, they can all be omitted
+      - `"{0}, {1}, {2}".format("a", "b", "c")`
+      - `"{}, {}, {}".format("a", "b", "c")`
+      - `"{0}{1}{0}".format("abra", "cad")`
+      - `"{2}, {1}, {0}".format(*"abc")`
+      - see `test_args_by_position()`
+    - if it's a _keyword_, it refers to a _named keyword argument_
+      - `"{lat}, {long}".format(lat="37.2N", long="-15.8W")`
+      - `"{lat}, {long}".format(**coord)` (where `coord` is a `dict`)
+      - `"{0[lat]}, {0[long]}".format(coord)`
+      - see `test_args_by_name()`
+    - positional and keyword arguments can be arbitrarily combined
+      - `"{}, {other}, {}".format(1, 2, other=3)`
+      - see `test_args_combined()`
+    - because `arg_name` is not quote-delimited, it is not possible to specify arbitrary dictionary keys within a format string
+    - `arg_name` can be followed by any number of index or attribute expressions
+      - `"{0.real}, {0.imag}".format(3 - 5j)`
+      - `"x: {0[0]}, y: {0[1]}".format((3, 4))`
+      - see `test_arg_index_attrs()`
+  - nested **`replacement_field`** example:
+    - `"result: {0:{1}.{2}}".format(value, width, precision)`
+    - see `test_format_nested_fields()`
+  - **`conversion`** example:
+    - `"The {animal!s}'s name is {name!r}".format(animal="eel", name="Bob")`
+    - see `test_conversion_modifiers()`
+  - **`format_spec`** examples:
+    - `"pi is approx {pi:.3f}".format(pi=math.pi)`
+    - `"{:.<10}{:.>10}".format(name + " ", " " + str(phone))`
+    - `"{ts:%d %B %Y %H:%M:%S}".format(ts=timestamp)`
+
+#### Manual String Formatting
+
+- See [`manual_formatting_test.py`](src/ch07/manual_formatting_test.py)
+- The [`str.rjust()`](https://docs.python.org/3/library/stdtypes.html#str.rjust) method of string objects right-justifies a string in a field of a given width by padding it with spaces (by default) on the left
+  - see `test_rjust()`
+- There are similar methods [`str.ljust()`](https://docs.python.org/3/library/stdtypes.html#str.ljust) and [`str.center()`](https://docs.python.org/3/library/stdtypes.html#str.center)
+- These methods do not write anything, they just return a new string
+- If the input string is too long, they don't truncate it, but return it unchanged
+  - if you really want truncation you can always add a slice operation, as in `x.ljust(n)[:n]`
+- [`str.zfill()`](https://docs.python.org/3/library/stdtypes.html#str.zfill) pads a numeric string on the left with zeros
+  - it understands about plus and minus signs
+  - see `test_zfill()`
+
+#### Old String Formatting
+
+- The `%` operator (modulo) can also be used for string formatting
+- Given `'string' % values`, instances of `%` in string are replaced with zero or more elements of `values`
+- Commonly known as string interpolation
+- For example: `print('The value of pi is approximately %5.3f.' % math.pi)`
+- See [printf-style String Formatting](https://docs.python.org/3/library/stdtypes.html#old-string-formatting)
+
+### Reading and Writing Files
+
+- [`open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)`](https://docs.python.org/3/library/functions.html#open)
+  - returns a file object
+    - the type of file object depends on the mode
+      - e.g., in text mode, it returns a subclass of [`io.TextIOBase`](https://docs.python.org/3/library/io.html#io.TextIOBase) (specifically [`io.TextIOWrappper`](https://docs.python.org/3/library/io.html#io.TextIOWrapper))
+        - `io.TextIOBase` inherits [`io.IOBase`](https://docs.python.org/3/library/io.html#io.IOBase), which supports the _iterator protocol_, and is a _context manager_
+        - see [I/O streams class hierarchy](https://docs.python.org/3/library/io.html#class-hierarchy)
+  - most commonly used with two arguments: `open(file, mode)`
+  - **`file`**
+    - path-like object giving the pathname (absolute or relative) of the file to be opened or an integer file descriptor of the file to be wrapped
+    - path-like object:
+      - a `str` or `bytes` object representing a path
+      - an object implementing the [`os.PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) protocol, e.g., [`pathlib.PurePath`](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath)
+  - **`mode`**
+    - the mode in which the file is opened
+      - `r`: open for reading (default)
+      - `w`: open for writing, truncating the file first
+      - `x`: open for exclusive creation, failing if the file already exists
+      - `a`: open for writing, appending to the end of the file if it exists
+      - `b`: binary mode
+      - `t`: text mode (default)
+      - `+`: open for updating (reading and writing)
+    - default mode is `r` (synonym of `rt`)
+    - `r+` and `r+b` open the file for reading and writing with no truncation
+    - `w+` and `w+b` open the file for reading and writing with truncation
+  - **`encoding`**
+    - in _text_ mode, if `encoding` is not specified (`None`), the default is platform-dependent
+  - **`newline`**
+    - in _text_ mode, if `newline` is not specified (`None`), the default when
+      - reading: convert platform-specific line endings to just `\n`
+      - writing: convert `\n` to platform-specific line ending, `os.linesep`
+  - see also the file handling modules, such as, [`fileinput`](https://docs.python.org/3/library/fileinput.html#module-fileinput), [`io`](https://docs.python.org/3/library/io.html#module-io), [`os`](https://docs.python.org/3/library/os.html#module-os), [`os.path`](https://docs.python.org/3/library/os.path.html#module-os.path), [`tempfile`](https://docs.python.org/3/library/tempfile.html#module-tempfile), and [`shutil`](https://docs.python.org/3/library/shutil.html#module-shutil)
+- It is good practice to use the [`with`](https://docs.python.org/3/reference/compound_stmts.html#with) keyword when dealing with file objects
+  - the file is properly closed after its suite finishes, even if an exception is raised at some point
+- If you're not using the `with` keyword, then you should call `f.close()` to close the file and immediately free up any system resources used by it
+
+#### Methods of File Objects
+
+- See [`file_object_methods_test.py`](src/ch07/file_object_methods_test.py)
+- [`f.read(size)`](https://docs.python.org/3/library/io.html#io.TextIOBase.read)
+  - reads some quantity of data and returns it as a string (in text mode) or bytes object (in binary mode)
+  - `size` is an optional numeric argument - the number of characters to read
+    - when omitted or is negative, the entire contents of the file will be read and returned
+      - see `test_read_all()`
+  - if the end of the file has been reached, `f.read()` will return an empty string (`''`)
+    - see `test_read_incremental()`
+- [`f.readline()`](https://docs.python.org/3/library/io.html#io.TextIOBase.readline)
+  - reads a single line from the file
+  - a newline character (`\n`) is left at the end of the string
+    - omitted on the last line of the file if the file doesn't end in a newline
+    - if `f.readline()` returns an empty string, the end of the file has been reached
+    - a blank line is represented by '`\n`', a string containing only a single newline
+    - see `test_read_file_line()`
+- For reading lines from a file, you can loop over the file object
+- If you want to read all the lines of a file in a list you can also use `list(f)` or [`f.readlines()`](https://docs.python.org/3/library/io.html#io.IOBase.readlines)
+  - see `test_read_file_to_list()`
+- [`f.write(string)`](https://docs.python.org/3/library/io.html#io.TextIOBase.write) writes the contents of `string` to the file, returning the number of characters written
+  - other types of objects need to be converted – either to a string (in text mode) or a bytes object (in binary mode)
+  - see `test_write_file()`
+- [`f.writelines(lines)`](https://docs.python.org/3/library/io.html#io.IOBase.writelines) writes a list of lines to the stream
+  - line separators are not added, so it is usual for each of the lines provided to have a line separator at the end
+  - see `test_write_lines()`
+
+#### Saving structured data with json
+
+- See [`json_read_write_test.py`](src/ch07/json_read_write_test.py)
+- The standard module called [`json`](https://docs.python.org/3/library/json.html#module-json) can take Python data hierarchies, and convert them to string representations
+- [`json.dumps(obj, *, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, default=None, sort_keys=False, **kw)`](https://docs.python.org/3/library/json.html#json.dumps)
+  - serialize `obj` to a JSON formatted `str`
+  - `json.dumps([1, "simple", "list"])`
+  - see `test_list_to_json_str()`, `test_python_to_json_str()`
+- [`json.dump(obj, fp, *, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, default=None, sort_keys=False, **kw)`](https://docs.python.org/3/library/json.html#json.dump)
+  - serialize `obj` as a JSON formatted stream to `fp` (a `.write()`-supporting file-like object)
+  - see `test_dict_to_json_file()`
+- [`json.loads(s, *, cls=None, object_hook=None, parse_float=None, parse_int=None, parse_constant=None, object_pairs_hook=None, **kw)`](https://docs.python.org/3/library/json.html#json.loads)
+  - deserialize `s` (a `str`, `bytes` or `bytearray` instance containing a JSON document) to a Python object
+  - `json.loads('{"boolean": true, "null": null}')`
+  - see `test_json_str_to_python_types()`
+- [`json.load(fp, *, cls=None, object_hook=None, parse_float=None, parse_int=None, parse_constant=None, object_pairs_hook=None, **kw)`](https://docs.python.org/3/library/json.html#json.load)
+  - deserialize `fp` (a `.read()`-supporting text file or binary file containing a JSON document) to a Python object
+  - see `test_json_file_to_obj()`
 
 ## Source
 
