@@ -58,6 +58,12 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
     - [Reading and Writing Files](#reading-and-writing-files)
       - [Methods of File Objects](#methods-of-file-objects)
       - [Saving structured data with json](#saving-structured-data-with-json)
+  - [8. Errors and Exceptions](#8-errors-and-exceptions)
+    - [Exceptions](#exceptions)
+    - [Handling Exceptions](#handling-exceptions)
+    - [Raising Exceptions](#raising-exceptions)
+    - [User-defined Exceptions](#user-defined-exceptions)
+    - [Defining Clean-up Actions](#defining-clean-up-actions)
   - [Source](#source)
 
 ## 3. An Informal Introduction to Python
@@ -1186,6 +1192,76 @@ _NamespacePath(['Lib/test/namespace_pkgs/project1/parent/child', 'Lib/test/names
 - [`json.load(fp, *, cls=None, object_hook=None, parse_float=None, parse_int=None, parse_constant=None, object_pairs_hook=None, **kw)`](https://docs.python.org/3/library/json.html#json.load)
   - deserialize `fp` (a `.read()`-supporting text file or binary file containing a JSON document) to a Python object
   - see `test_json_file_to_obj()`
+
+## 8. Errors and Exceptions
+
+- See [`errors_exceptions_test.py`](src/ch08/errors_exceptions_test.py)
+
+### Exceptions
+
+- See [class hierarchy](https://docs.python.org/3/library/exceptions.html#exception-hierarchy) for built-in exceptions
+
+### Handling Exceptions
+
+- A `try` statement may have more than one `except` clause, to specify handlers for different exceptions
+  - see `test_multiple_handlers_hierarchy()`
+- An `except` clause may name multiple exceptions as a parenthesized tuple
+  - see `test_except_multiple_exceptions()`
+- A class in an `except` clause is compatible with an exception if it is the same class or a base class thereof (but not the other way around)
+- The last `except` clause may omit the exception name(s), to serve as a wildcard
+  - can be used to print an error message and then re-raise the exception (allowing a caller to handle the exception as well)
+  - see `test_bare_except()`
+- The `try ... except` statement has an optional **`else`** clause
+  - must follow all `except` clauses
+  - useful for code that must be executed if the `try` clause does not raise an exception or execute a `return`, `continue`, or `break` statement
+  - see `test_try_except_else()`
+- When an exception occurs, it may have an associated value, also known as the exception's argument
+  - depends on the exception type
+- The `except` clause may specify a variable after the exception name using the **`as`** keyword
+  - bound to an exception instance with the arguments stored in [`.args`](https://docs.python.org/3/library/exceptions.html#BaseException.args)
+  - exception instance defines `__str__()` so the arguments can be printed directly without having to reference `.args`
+  - `except Exception as ex`
+  - see `test_as_keyword()`
+
+### Raising Exceptions
+
+- The `raise` statement allows the programmer to force a specified exception to occur
+- The sole argument to `raise` indicates the exception to be raised, which must be
+  - an exception instance, or
+  - an exception class (a class that derives from `Exception`)
+    - implicitly instantiated by calling its constructor with no arguments
+- If you need to determine whether an exception was raised but don't intend to handle it, a simpler form of the `raise` statement allows you to re-raise the exception
+  - re-raises the last exception that was active in the current scope
+  - if no exception is active in the current scope, a `RuntimeError` exception is raised
+- The **`from`** clause is used for _exception chaining_
+  - if given, the second expression must be another exception class or instance
+    - attached to the raised exception as the `__cause__` attribute (which is writable)
+  - `raise RuntimeError("Something bad happened") from zde`
+  - see `test_exception_chaining()`
+
+### User-defined Exceptions
+
+- Programs may name their own exceptions by creating a new exception class
+  - should typically be derived from the `Exception` class, either directly or indirectly
+- When creating a module that can raise several distinct errors, a common practice is to create a base class for exceptions defined by that module
+  - subclass that to create specific exception classes for different error conditions
+- Most exceptions are defined with names that end in "Error", similar to the naming of the standard exceptions
+- see `test_custom_exception()`
+
+### Defining Clean-up Actions
+
+- If a `finally` clause is present, it will be executed as the last task before the `try` statement completes
+  - runs whether or not the `try` statement produces an exception
+  - if an exception occurs during execution of the `try` clause, and it is not handled by an `except` clause
+    - the exception is re-raised after the `finally` clause has been executed
+  - an exception could occur during execution of an `except` or `else` clause
+    - the exception is re-raised after the `finally` clause has been executed
+  - if the `try` statement reaches a `break`, `continue` or `return` statement
+    - the `finally` clause will execute just prior to their execution
+  - if a `finally` clause includes a `return` statement
+    - the returned value will be the one from the `finally` clause, not the value from the `try` clause's `return` statement
+  - see `test_finally()`
+- The `finally` clause is useful for releasing external resources (such as files or network connections), regardless of whether the use of the resource was successful
 
 ## Source
 
