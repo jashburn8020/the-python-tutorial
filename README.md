@@ -64,6 +64,23 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
     - [Raising Exceptions](#raising-exceptions)
     - [User-defined Exceptions](#user-defined-exceptions)
     - [Defining Clean-up Actions](#defining-clean-up-actions)
+  - [9. Classes](#9-classes)
+    - [A Word About Names and Objects](#a-word-about-names-and-objects)
+    - [Python Scopes and Namespaces](#python-scopes-and-namespaces)
+    - [A First Look at Classes](#a-first-look-at-classes)
+      - [Class Definition Syntax](#class-definition-syntax)
+      - [Class Objects](#class-objects)
+      - [Instance Objects](#instance-objects)
+      - [Method Objects](#method-objects)
+      - [Class and Instance Variables](#class-and-instance-variables)
+    - [Random Remarks](#random-remarks)
+    - [Inheritance](#inheritance)
+      - [Multiple Inheritance](#multiple-inheritance)
+      - [Mixins](#mixins)
+    - [Private Variables](#private-variables)
+    - [Odds and Ends](#odds-and-ends)
+    - [Iterators](#iterators)
+    - [Generators](#generators)
   - [Source](#source)
 
 ## 3. An Informal Introduction to Python
@@ -1117,6 +1134,7 @@ _NamespacePath(['Lib/test/namespace_pkgs/project1/parent/child', 'Lib/test/names
     - the type of file object depends on the mode
       - e.g., in text mode, it returns a subclass of [`io.TextIOBase`](https://docs.python.org/3/library/io.html#io.TextIOBase) (specifically [`io.TextIOWrappper`](https://docs.python.org/3/library/io.html#io.TextIOWrapper))
         - `io.TextIOBase` inherits [`io.IOBase`](https://docs.python.org/3/library/io.html#io.IOBase), which supports the _iterator protocol_, and is a _context manager_
+          - `for line in file_object:`: iterates through the file object, line by line
         - see [I/O streams class hierarchy](https://docs.python.org/3/library/io.html#class-hierarchy)
   - most commonly used with two arguments: `open(file, mode)`
   - **`file`**
@@ -1262,6 +1280,386 @@ _NamespacePath(['Lib/test/namespace_pkgs/project1/parent/child', 'Lib/test/names
     - the returned value will be the one from the `finally` clause, not the value from the `try` clause's `return` statement
   - see `test_finally()`
 - The `finally` clause is useful for releasing external resources (such as files or network connections), regardless of whether the use of the resource was successful
+
+## 9. Classes
+
+- Python's class mechanism is a mixture of the class mechanisms found in C++ and Modula-3
+- In C++ terminology, normally class members (including the data members) are _public_, and all member functions are _virtual_ (can be overridden by derived classes)
+- As in Smalltalk, classes themselves are objects
+- Unlike C++ and Modula-3, built-in types can be used as base classes for extension by the user
+- Like in C++, most built-in operators with special syntax (arithmetic operators, subscripting etc.) can be redefined for class instances
+
+### A Word About Names and Objects
+
+- Objects have individuality, and multiple names (in multiple scopes) can be bound to the same object
+  - known as _aliasing_
+- Aliasing has an effect on the semantics of Python code involving mutable objects such as lists, dictionaries, and most other types
+  - behave like pointers in some respects
+  - passing an object is cheap since only a pointer is passed by the implementation
+  - if a function modifies an object passed as an argument, the caller will see the change
+
+### Python Scopes and Namespaces
+
+- A **namespace** is a mapping from names to objects
+  - most namespaces are currently implemented as Python dictionaries
+  - examples of namespaces are:
+    - the set of built-in names (containing functions such as `abs()`, and built-in exception names)
+    - the global names in a module
+    - the local names in a function invocation
+    - (in a sense) the set of attributes of an object
+  - there is absolutely no relation between names in different namespaces
+    - 2 different modules may both define a function `maximize` - users of the modules must prefix it with the module name
+- **Attribute** - any name following a dot
+  - `z.real`: `real` is an attribute of the object `z`
+  - references to names in modules are attribute references
+    - `modname.funcname`: `modname` is a module object and `funcname` is an attribute of it
+    - straightforward mapping between the module's attributes and the global names defined in the module: they share the same namespace
+  - may be read-only or writable
+    - module attributes are writable
+      - `modname.the_answer = 42`
+    - writable attributes may also be deleted with the `del` statement
+      - `del modname.the_answer`: remove the attribute `the_answer` from the object named by `modname`
+- Namespaces are created at different moments and have different lifetimes
+  - namespace containing the built-in names
+    - created when the Python interpreter starts up
+    - never deleted
+    - built-in names actually also live in a module called `builtins`
+  - global namespace for a module
+    - created when the module definition is read in
+    - normally, module namespaces also last until the interpreter quits
+  - statements executed by the top-level invocation of the interpreter
+    - considered part of a module called `__main__`
+    - have their own global namespace
+  - local namespace for a function
+    - created when the function is called
+    - deleted (forgotten) when the function returns or raises an exception that is not handled within the function
+    - recursive invocations each have their own local namespace
+- A **scope** is a textual region of a Python program where a namespace is directly accessible (unqualified reference to a name to find the name in the namespace)
+  - scopes are determined statically, they are used dynamically
+  - at any time during execution, there are at least 3 nested scopes whose namespaces are directly accessible:
+    - innermost scope: searched first, contains the local names
+    - scopes of any enclosing functions: searched starting with the nearest enclosing scope, contains non-local, but also non-global names
+    - next-to-last scope: contains the current module's global names
+    - outermost scope: searched last, the namespace containing built-in names
+  - if a name is declared global
+    - all references and assignments go directly to the middle scope containing the module's global names
+  - to rebind variables found outside of the innermost scope, the `nonlocal` statement can be used
+    - if not declared `nonlocal`
+      - those variables are read-only
+      - an attempt to write to such a variable will simply create a new local variable in the innermost scope, leaving the identically named outer variable unchanged
+  - the local scope references the local names of the (textually) current function
+  - outside functions, the local scope references the same namespace as the global scope: the module's namespace
+  - class definitions place yet another namespace in the local scope
+  - scopes are determined textually: the global scope of a function defined in a module is that module's namespace, no matter from where or by what alias the function is called
+  - if no `global` or `nonlocal` statement is in effect
+    - assignments to names always go into the innermost scope
+  - assignments do not copy data - they just bind names to objects
+    - the same is true for deletions: `del x` removes the binding of `x` from the namespace referenced by the local scope
+  - all operations that introduce new names use the local scope
+    - `import` statements and function definitions bind the module or function name in the local scope
+  - `global` statement
+    - indicates that particular variables live in the global scope and should be rebound there
+  - `nonlocal` statement
+    - indicates that particular variables live in an enclosing scope and should be rebound there
+
+### A First Look at Classes
+
+#### Class Definition Syntax
+
+- In practice, the statements inside a class definition will usually be function definitions, but other statements are allowed
+- When a class definition is entered, a new namespace is created, and used as the local scope
+  - all assignments to local variables go into this new namespace
+  - function definitions bind the name of the new function here
+- When a class definition is left normally (via the end)
+  - a **class object** is created
+    - a wrapper around the contents of the namespace created by the class definition
+  - the original local scope (the one in effect just before the class definition was entered) is reinstated
+  - the class object is bound here to the class name given in the class definition header
+
+#### Class Objects
+
+- Class objects support two kinds of operations: attribute references and instantiation
+- **Attribute references** use the standard syntax used for all attribute references in Python: `obj.name`
+  - valid attribute names are all the names that were in the class's namespace when the class object was created
+  - with the class definition below:
+    - `MyClass.i` and `MyClass.f` are valid attribute references, returning an integer and a _function object_, respectively
+    - class attributes can be assigned to, so you can change the value of `MyClass.i` by assignment
+    - `__doc__` is also a valid attribute, returning the docstring belonging to the class: `"A simple example class."`
+
+```python
+class MyClass:
+    """A simple example class."""
+    i = 12345
+
+    def f(self):
+        return 'hello world'
+```
+
+- **Class instantiation** uses function notation
+  - `x = MyClass()` creates a new instance of the class and assigns this object to the local variable `x`
+  - a class may define a special method named `__init__()` to customize an instance to a specific initial state
+    - automatically invoked during class instantiation
+
+#### Instance Objects
+
+- See [`a_first_look_test.py`](src/ch09/a_first_look_test.py)
+- The only operations understood by instance objects are _attribute references_
+- There are 2 kinds of valid attribute names:
+  - data attributes
+  - methods
+- **Data attributes** need not be declared
+  - like local variables, they spring into existence when they are first assigned to
+  - see `test_data_attribute()`
+- The other kind of instance attribute reference is a **method**
+  - a method is a function that "belongs to" an object
+  - by definition, all attributes of a class that are function objects define corresponding methods of its instances
+  - in the `MyClass` example above:
+    - `x.f` is a method reference since `MyClass.f` is a function
+    - `x.f` is not the same thing as `MyClass.f` - it is a _method object_, not a function object
+
+#### Method Objects
+
+- See [`a_first_look_test.py`](src/ch09/a_first_look_test.py)
+- In the `MyClass` example above, `x.f` is a _method object_
+  - it can be stored away and called at a later time
+  - the special thing about methods is that the instance object is passed as the first argument of the function (`self`)
+    - the call `x.f()` is exactly equivalent to `MyClass.f(x)`
+  - see `test_method_object()`
+
+#### Class and Instance Variables
+
+- See [`a_first_look_test.py`](src/ch09/a_first_look_test.py)
+- **Instance variables** are for data unique to each instance
+- **Class variables** are for attributes and methods shared by all instances of the class
+  - shared data can have surprising effects when involving mutable objects such as lists and dictionaries
+- For example, the `tricks` list in the following code should not be used as a class variable because just a single list would be shared by all `Dog` instances
+
+```python
+class Dog:
+
+    shared_tricks: List[str] = []  # Mistaken use of a class variable
+    ...
+```
+
+- Correct design of the class should use an instance variable
+  - see `test_class_instance_variables()`
+
+```python
+class Dog:
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.tricks: List[str] = []
+```
+
+### Random Remarks
+
+- See [`a_first_look_test.py`](src/ch09/a_first_look_test.py)
+- Data attributes may be referenced by methods as well as by ordinary users ("clients") of an object
+  - in fact, nothing in Python makes it possible to enforce data hiding - it is all based upon convention
+- Clients should use data attributes with care
+  - clients may mess up invariants maintained by the methods by stamping on their data attributes
+  - clients may add data attributes of their own to an instance object without affecting the validity of the methods
+    - as long as name conflicts are avoided
+- Often, the first argument of a method is called `self`
+  - this is nothing more than a convention
+- Any function object that is a class attribute defines a method for instances of that class
+  - it is not necessary that the function definition is textually enclosed in the class definition
+  - assigning a function object to a local variable in the class is also ok
+  - see `test_add_function_to_class()`
+- Methods may call other methods by using method attributes of the self argument
+  - see `test_calling_other_methods()`
+- Each value is an object, and therefore has a class (also called its type)
+  - stored as `object.__class__`
+
+### Inheritance
+
+- See [`inheritance_test.py`](src/ch09/inheritance_test.py)
+- The syntax for a derived class definition looks like this:
+
+```python
+class DerivedClassName(BaseClassName):
+    # <statement-1>
+    # .
+    # .
+    # <statement-N>
+```
+
+- The name `BaseClassName` must be defined in a scope containing the derived class definition
+- In place of a base class name, other arbitrary expressions are also allowed
+  - useful, for example, when the base class is defined in another module
+    - `class DerivedClassName(modname.BaseClassName):`
+- When the class object is constructed, the base class is remembered
+  - used for resolving attribute references
+  - if a requested attribute is not found in the class, the search proceeds to look in the base class
+- `DerivedClassName()` creates a new instance of the class
+- If a base class has an `__init__()` method
+  - the derived class's `__init__()` method, if any, must explicitly call it to ensure proper initialization of the base class part of the instance
+    - `BaseClassName.__init__(self, arguments)`
+    - `super().__init__(arguments)`
+- Method references are resolved as follows:
+  - the corresponding class attribute is searched, descending down the chain of base classes if necessary
+- Derived classes may override methods of their base classes
+  - methods have no special privileges when calling other methods of the same object
+    - a method of a base class that calls another method defined in the same base class may end up calling a method of a derived class that overrides it
+- An overriding method in a derived class may want to extend rather than simply replace the base class method of the same name
+  - to call the base class method directly:
+    - `BaseClassName.methodname(self, arguments)`
+    - `super().methodname(arguments)`
+- Python has two built-in functions that work with inheritance:
+  - `isinstance()`
+    - check an instance's type
+    - `isinstance(obj, int)` will be `True` only if `obj.__class__` is `int` or some class derived from `int`
+    - see `test_isinstance()`
+  - `issubclass()`
+    - check class inheritance
+    - `issubclass(bool, int)` is `True` since `bool` is a subclass of `int`
+    - `issubclass(float, int)` is `False` since `float` is not a subclass of `int`
+    - see `test_issubclass()`
+
+#### Multiple Inheritance
+
+- See [`multiple_inheritance_test.py`](src/ch09/multiple_inheritance_test.py)
+- A class definition with multiple base classes looks like this:
+
+```python
+class DerivedClassName(Base1, Base2, Base3):
+    # <statement-1>
+    # .
+    # .
+    # <statement-N>
+```
+
+- In the simplest cases, you can think of the search for attributes inherited from a parent class as
+  - depth-first
+  - left-to-right
+  - not searching twice in the same class where there is an overlap in the hierarchy
+- In fact, it is slightly more complex than that
+  - method resolution order (mro) changes dynamically to support cooperative calls to `super()`
+  - known in some other multiple-inheritance languages as call-next-method
+  - see <https://www.python.org/download/releases/2.3/mro/>
+  - given a class `C` in a complicated multiple inheritance hierarchy
+    - the list of the ancestors of a class `C`, including the class itself, ordered from the nearest ancestor to the furthest, is called the class precedence list or the **linearization** of `C`
+    - **Method Resolution Order (MRO)** is the set of rules that construct the linearization
+      - in the Python literature, "the MRO of `C`" is synonymous to the linearization of the class `C`
+    - in the case of single inheritance hierarchy, if `C` is a subclass of `C1`, and `C1` is a subclass of `C2`, then the linearization of `C` is simply the list `[C, C1 , C2]`
+    - with multiple inheritance hierarchies, the construction of the linearization is more cumbersome, since it is more difficult to construct a linearization that respects local precedence ordering and monotonicity
+    - an MRO is **monotonic** when the following is true:
+      - if `C1` precedes `C2` in the linearization of `C`, then `C1` precedes `C2` in the linearization of any subclass of `C`
+    - **`class.__mro__`**: a tuple of classes that are considered when looking for base classes during method resolution
+
+#### Mixins
+
+- See [`mixin_test.py`](src/ch09/mixin_test.py)
+- Python doesn't provide support for mixins with any dedicated language feature, so we use multiple inheritance to implement them
+  - classes that live in the normal inheritance tree, but are kept small
+  - the delineation between using true inheritance and using mixins is nuanced
+    - a mixin is independent enough that it doesn't feel the same as a parent class
+    - mixins aren't generally used on their own, but aren't abstract classes either
+  - shouldn't have common ancestors other than `object` with the other parent classes
+- Mixins cannot usually be too generic
+  - designed to add features to classes, but these new features often interact with other pre-existing features of the augmented class
+- See:
+  - <https://www.thedigitalcatonline.com/blog/2020/03/27/mixin-classes-in-python/>
+  - <https://easyaspython.com/mixins-for-fun-and-profit-cb9962760556>
+
+### Private Variables
+
+- See [`private_variables_test.py`](src/ch09/private_variables_test.py)
+- "Private" instance variables that cannot be accessed except from inside an object don't exist in Python
+- Convention: a name (function, method or data member)) **prefixed with an underscore** (e.g., `_spam`) should be treated as a non-public part of the API
+  - should be considered an implementation detail and subject to change without notice
+- There is limited support for class-private members, called **name mangling**
+  - any identifier of the form `__spam` (at least 2 leading underscores, at most 1 trailing underscore) is textually replaced with `_classname__spam`
+    - `classname` is the current class name
+  - helpful for letting subclasses override methods without breaking intraclass method calls
+
+### Odds and Ends
+
+- See [`odds_ends_test.py`](src/ch09/odds_ends_test.py)
+- **Struct**
+  - an empty class definition can be used as a data type similar to the Pascal "record" or C "struct", bundling together a few named data items
+  - see `test_struct()`
+- **Duck typing/structural subtyping**
+  - a piece of Python code that expects a particular abstract data type can often be passed a class that emulates the methods of that data type instead
+  - see `test_structural_subtyping()`
+- **Property**
+  - `class property(fget=None, fset=None, fdel=None, doc=None)`
+    - return a property attribute
+    - `fget`: a function for getting an attribute value
+    - `fset`: a function for setting an attribute value
+    - `fdel`: a function for deleting an attribute value
+    - `doc`: creates a docstring for the attribute
+  - a typical use is to define a managed attribute
+  - see `test_property()` and `test_read_only_property()`
+  - see also <https://docs.python.org/3/library/functions.html#property>
+  - using `property()` as a decorator
+    - the `@property` decorator turns the decorated method into a "getter" for an attribute with the same name
+    - a property object has `getter`, `setter`, and `deleter` methods usable as decorators that create a copy of the property with the corresponding accessor function set to the decorated function
+    - see `test_property_decorator()`
+
+### Iterators
+
+- See [`iterators_test.py`](src/ch09/iterators_test.py)
+- The `for` statement calls [**`iter()`**](https://docs.python.org/3/library/functions.html#iter) on the container object
+  - `for element in [1, 2, 3]:`
+  - returns an **iterator object**
+    - defines the method `__next__()` which accesses elements in the container one at a time
+    - defines the method `__iter__()` which return the iterator object itself
+      - required to allow both containers and iterators to be used with the `for` and `in` statements
+    - the 2 methods together form the _iterator protocol_
+  - when there are no more elements, `__next__()` raises a `StopIteration` exception which tells the `for` loop to terminate
+  - you can call the `__next__()` method using the `next()` built-in function
+    - `next(letters_iter)`
+- To add iterator behavior to your classes
+  - define an `__iter__()` method which returns an object with a `__next__()` method (supports the iterator protocol)
+  - if the class defines `__next__()`, then `__iter__()` can just return `self`
+- See also:
+  - <https://mypy.readthedocs.io/en/stable/protocols.html#iterator-t>
+  - <https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes>
+
+### Generators
+
+- See [`generators_test.py`](src/ch09/generators_test.py)
+- A generator is a function which returns a **generator iterator**
+- It is written like a regular function but uses the [`yield`](https://docs.python.org/3/reference/simple_stmts.html#yield) statement whenever they want to return data
+- When a generator function is called
+  - returns an iterator known as a generator
+  - that generator then controls the execution of the generator function
+  - execution starts when one of the generator's `next()` or `send()` methods is called
+  - execution proceeds to the first `yield` expression, where it is suspended again
+    - returning the value of the `yield` expression to the generator's caller
+    - all local state is retained
+  - when the execution is resumed by calling one of the generator's `next()` or `send()` methods
+    - the function can proceed exactly as if the `yield` expression were just another external call
+    - the value of the `yield` expression after resuming depends on the method which resumed the execution
+      - if `__next__()` is used (typically via either a `for` or the `next()` builtin) then the result is `None`
+      - if `send()` is used, then the result will be the value passed in to that method
+  - when the generator terminates, it automatically raises `StopIteration`
+- Anything that can be done with generators can also be done with class-based iterators as described in the previous section
+- What makes generators so compact is that the `__iter__()` and `__next__()` methods are created automatically
+- Another key feature is that the local variables and execution state are automatically saved between calls
+  - easier to write and much clearer than an approach using instance variables like `self.index` and `self.data`
+- These features make it easy to create iterators with no more effort than writing a regular function
+- A generator can be annotated by the generic type `Generator[YieldType, SendType, ReturnType]`
+- Examples uses:
+  - reading large files
+  - generating an infinite sequence
+- See also:
+  - <https://docs.python.org/3/reference/expressions.html#generator-iterator-methods>
+  - <https://realpython.com/introduction-to-python-generators/>
+
+### Generator Expressions
+
+- See [`generators_test.py`](src/ch09/generators_test.py)
+- Some simple generators can be coded succinctly as expressions using a syntax similar to list comprehensions but with parentheses instead of square brackets
+- Designed for situations where the generator is used right away by an enclosing function
+- More compact but less versatile than full generator definitions
+- Tend to be more memory friendly than equivalent list comprehensions
+- Examples:
+  - `(data[i] for i in range(len(data) - 1, -1, -1))`
+  - `(i * i for i in range(10))`
+  - `(words for line in file for words in line.split())`
 
 ## Source
 
