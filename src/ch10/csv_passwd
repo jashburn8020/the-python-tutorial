@@ -1,0 +1,2 @@
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+hplip:x:117:7:HPLIP system user,,,:/var/run/hplip:/bin/false

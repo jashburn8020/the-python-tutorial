@@ -81,6 +81,31 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
     - [Odds and Ends](#odds-and-ends)
     - [Iterators](#iterators)
     - [Generators](#generators)
+    - [Generator Expressions](#generator-expressions)
+  - [10. Brief Tour of the Standard Library](#10-brief-tour-of-the-standard-library)
+    - [Operating System Interface](#operating-system-interface)
+    - [File Wildcards](#file-wildcards)
+    - [Command Line Arguments](#command-line-arguments)
+    - [Error Output Redirection and Program Termination](#error-output-redirection-and-program-termination)
+    - [String Pattern Matching](#string-pattern-matching)
+    - [Mathematics](#mathematics)
+    - [Internet Access](#internet-access)
+    - [Dates and Times](#dates-and-times)
+      - [Aware and Naive Objects](#aware-and-naive-objects)
+      - [Determining if an Object is Aware or Naive](#determining-if-an-object-is-aware-or-naive)
+      - [Common Properties](#common-properties)
+      - [`timedelta` Objects](#timedelta-objects)
+      - [`date` Objects](#date-objects)
+      - [`datetime` Objects](#datetime-objects)
+      - [`strftime()` and `strptime()` Behavior](#strftime-and-strptime-behavior)
+    - [Data Compression](#data-compression)
+      - [`zipfile`](#zipfile)
+    - [Performance Measurement](#performance-measurement)
+    - [Quality Control](#quality-control)
+    - [Batteries Included](#batteries-included)
+      - [`csv`](#csv)
+      - [`xml.etree.ElementTree`](#xmletreeelementtree)
+      - [`sqlite3`](#sqlite3)
   - [Source](#source)
 
 ## 3. An Informal Introduction to Python
@@ -1660,6 +1685,885 @@ class DerivedClassName(Base1, Base2, Base3):
   - `(data[i] for i in range(len(data) - 1, -1, -1))`
   - `(i * i for i in range(10))`
   - `(words for line in file for words in line.split())`
+
+## 10. Brief Tour of the Standard Library
+
+### Operating System Interface
+
+- See [`os_test.py`](src/ch10/os_test.py)
+- The [`os`](https://docs.python.org/3/library/os.html#module-os) module provides dozens of functions for interacting with the operating system
+  - use the `import os` style instead of `from os import *` to prevent `os.open()` from shadowing the built-in `open()` function
+- For file and directory management tasks, the [`shutil`](https://docs.python.org/3/library/shutil.html#module-shutil) module provides a higher level interface that is easier to use
+  - see also [`os.path`](https://docs.python.org/3/library/os.path.html#module-os.path) and [`pathlib`](https://docs.python.org/3/library/pathlib.html#module-pathlib) modules
+
+### File Wildcards
+
+- See [`os_test.py`](src/ch10/os_test.py)
+- The [`glob`](https://docs.python.org/3/library/glob.html#module-glob) module provides a function for making file lists from directory wildcard searches
+  - `glob.glob(str(tmp_path.joinpath("**/*.txt")), recursive=True)`
+- See also [`Path.glob(pattern)`](https://docs.python.org/3/library/pathlib.html#pathlib.Path.glob)
+  - `tmp_path.glob("**/*.txt")`
+
+### Command Line Arguments
+
+- Command line arguments are stored in the [**`sys`**](https://docs.python.org/3/library/sys.html#module-sys) module's `argv` attribute as a list
+  - see [`cmd_line_args.py`](src/ch10/cmd_line_args.py)
+
+```console
+$ python cmd_line_args.py one two three
+['cmd_line_args.py', 'one', 'two', 'three']
+```
+
+- The [**`argparse`**](https://docs.python.org/3/library/argparse.html#module-argparse) module provides a more sophisticated mechanism to process command line arguments
+  - see [`top_lines.py`](src/ch10/top_lines.py)
+  - see also <https://docs.python.org/3/howto/argparse.html#argparse-tutorial>
+
+```console
+$ python top_lines.py
+usage: top_lines [-h] [-l LINES] filenames [filenames ...]
+top: error: the following arguments are required: filenames
+
+$ python top_lines.py -h
+usage: top_lines [-h] [-l LINES] filenames [filenames ...]
+
+Show top lines from each file
+
+positional arguments:
+  filenames
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -l LINES, --lines LINES
+
+$ python top_lines.py -l 5 a.txt b.txt
+Namespace(filenames=['a.txt', 'b.txt'], lines=5)
+```
+
+### Error Output Redirection and Program Termination
+
+- The [**`sys`**](https://docs.python.org/3/library/sys.html#module-sys) module also has attributes for standard input, output and errors (`stdin`, `stdout` and `stderr`)
+  - `stderr` is useful for emitting warnings and error messages to make them visible even when standard out has been redirected
+  - see [`sys_stdout_stderr_test.py`](src/ch10/sys_stdout_stderr_test.py)
+- The most direct way to terminate a script is to use `sys.exit()`
+
+### String Pattern Matching
+
+- See [`string_pattern_matching_test.py`](src/ch10/string_pattern_matching_test.py)
+- The [**`re`**](https://docs.python.org/3/library/re.html#module-re) module provides regular expression tools for advanced string processing
+- Compiling regular expressions
+  - regular expressions are compiled into [**`Pattern` objects**](https://docs.python.org/3/library/re.html#regular-expression-objects)
+  - `re.compile()` also accepts an optional flags argument, used to enable various special features and syntax variations
+    - see <https://docs.python.org/3/howto/regex.html#compilation-flags>
+- Performing matches
+  - pattern objects have several methods and attributes, such as:
+    - `search()`: scan through a string, looking for any location where this RE matches
+      - see `test_pattern_search()`
+    - `match()`: determine if the RE matches at the beginning of the string
+      - see `test_pattern_match()`
+    - `findall()`: find all substrings where the RE matches, and returns them as a list
+    - `finditer()`: find all substrings where the RE matches, and returns them as an iterator
+      - see `test_pattern_findall_iter()`
+  - `match()` and `search()` return `None` if no match can be found
+    - if they're successful, a [**`Match` object**](https://docs.python.org/3/library/re.html#match-objects) is returned
+  - `Match` objects have methods and attributes such as:
+    - `group()`: return the string matched by the RE
+    - `start()`: return the starting position of the match
+    - `end()`: return the ending position of the match
+    - `span()`: return a tuple containing the (start, end) positions of the match
+- Module-level functions
+  - the `re` module also provides top-level functions called `match()`, `search()`, `findall()`, `finditer()`, and so forth
+    - they take the same arguments as the corresponding `Pattern` method with the RE string added as the first argument
+      - `re.search(r"\bclass\b", "no class at all")`
+    - these functions simply create a pattern object for you and call the appropriate method on it
+    - they also store the compiled object in a cache
+      - if you're accessing a regex within a loop, pre-compiling it will save a few function calls
+      - outside of loops, there's not much difference
+    - see `test_module_functions()`
+- Grouping
+  - marked by the `(`, `)` metacharacters
+  - numbered starting with 0
+    - group 0 is always present; it's the whole RE
+  - subgroups are numbered from left to right, from 1 upward
+  - can be nested; to determine the number, just count the opening parenthesis characters, going from left to right
+  - see `test_group_numbering()`
+  - **backreferences** in a pattern allow you to specify that the contents of an earlier capturing group must also be found at the current location in the string
+    - e.g., `\1` will succeed if the exact contents of group 1 can be found at the current position
+      - `re.search(r"\b(\w+)\s+\1\b", "Paris in the the spring")`
+    - see `test_backreference()`
+- Named groups
+  - the syntax for a named group is one of the Python-specific extensions: `(?P<name>...)`
+  - behave exactly like capturing groups, and additionally associate a name with a group
+    - `re.match(r"(?P<first>\w+) (?:[A-Z]\. )?(?P<last>\w+)", "Jane P. Doe")`
+  - you can retrieve named groups by number or string, or as a dictionary with `groupdict()`
+    - see `test_named_group()`
+- Lookaround assertions
+  - lookahead and lookbehind, collectively called "lookaround", are zero-length assertions
+  - matches characters, but then gives up the match, returning only the result: match or no match
+    - succeeds if the contained regular expression successfully matches (for a positive lookaround) or doesn't match (for a negative lookaround) at the current location, and fails otherwise
+    - once the contained expression has been tried, the matching engine doesn't advance at all
+      - the rest of the pattern is tried right where the assertion started
+  - positive lookahead
+    - `re.compile(r"\w+(?= Brown$)")`
+    - see `test_positive_lookahead()`
+  - negative lookahead
+    - `re.compile(r".*[.](?!bat$|exe$)[^.]*$")`
+    - see `test_negative_lookahead()`
+  - positive lookbehind
+    - `re.compile(r"(?<=-)\w+")`
+    - see `test_positive_lookbehind()`
+  - negative lookbehind
+    - `re.compile(r"(?<!abc|bbc)def")`
+    - see `test_negative_lookbehind()`
+- Search and replace
+  - `re.sub(pattern, repl, string, count=0, flags=0)`
+  - return the string obtained by replacing the leftmost non-overlapping occurrences of `pattern` in `string` by the replacement `repl`
+    - `pattern` may be a string or a pattern object
+      - `re.sub(r"blue|white|red", "color", "blue socks and red shoes")`
+      - see `test_sub()`
+    - if the pattern isn't found, `string` is returned unchanged
+    - `repl` can be a string or a function
+      - replacement function: see `test_replacement_function()`
+      - backreferences, such as `\6`, are replaced with the substring matched by group 6 in the pattern
+        - `re.sub(r"(\b[a-z]+) \1", r"\1", "cat in the the hat")`
+        - see `test_group_backreference()`
+      - `\g<number>` uses the corresponding group number
+        - `\g<2>` is equivalent to `\2`
+        - prevents ambiguity with, e.g., `\g<2>0`, which is a reference to group 2 followed by the literal `0` character
+        - `re.sub("section{([^}]*)}", r"heading{\g<1>}", "section{One} section{Two}")`
+      - named groups: `\g<name>` will use the substring matched by the group named `name`, as defined by `(?P<name>...)`
+        - `re.sub("section{(?P<name>[^}]*)}", r"heading{\g<name>}", "section{One} section{Two}")`
+        - see `test_backreference_variants()`
+    - `count` is the maximum number of pattern occurrences to be replaced
+      - if omitted or zero, all occurrences will be replaced
+    - empty matches for the pattern are replaced only when not adjacent to a previous empty match
+  - see also <https://docs.python.org/3/howto/regex.html>
+
+### Mathematics
+
+- See [`mathematics_test.py`](src/ch10/mathematics_test.py)
+- The [`math`](https://docs.python.org/3/library/math.html#module-math) module gives access to the underlying C library functions for floating point math
+- The [`random`](https://docs.python.org/3/library/random.html#module-random) module provides tools for making random selections
+- The [`statistics`](https://docs.python.org/3/library/statistics.html#module-statistics) module calculates basic statistical properties (the mean, median, variance, etc.) of numeric data
+- The [SciPy project](https://scipy.org) has many other modules for numerical computations
+
+### Internet Access
+
+- See [`internet_access_test.py`](src/ch10/internet_access_test.py)
+- There are a number of modules for accessing the internet and processing internet protocols
+- Two of the simplest are:
+  - [`urllib.request`](https://docs.python.org/3/library/urllib.request.html#module-urllib.request) for retrieving data from URLs
+    - `urllib.request.urlopen(url, data=None, [timeout, ]*, cafile=None, capath=None, cadefault=False, context=None)`
+      - opens the URL `url`, which can be either a string or a `Request` object (see below)
+      - `data` must be an object specifying additional data to be sent to the server, or `None` if no such data is needed (see `Request` for details)
+      - the optional `timeout` parameter specifies a timeout in seconds for blocking operations like the connection attempt
+        - if not specified, the global default timeout setting will be used
+        - only works for HTTP, HTTPS and FTP connections
+      - if `context` is specified, it must be an `ssl.SSLContext` instance describing the various SSL options
+        - see [`HTTPSConnection`](https://docs.python.org/3/library/http.client.html#http.client.HTTPSConnection) for more details
+      - the optional `cafile` and `capath` parameters specify a set of trusted CA certificates for HTTPS requests
+        - more information: [`ssl.SSLContext.load_verify_locations()`](https://docs.python.org/3/library/ssl.html#ssl.SSLContext.load_verify_locations)
+      - the `cadefault` parameter is ignored
+      - always returns an object which can work as a context manager and has methods such as:
+        - `geturl()`: return the URL of the resource retrieved
+        - `info()`: return the meta-information of the page, such as headers
+        - `getcode()`: return the HTTP status code of the response
+      - for HTTP and HTTPS URLs, this function returns a [`http.client.HTTPResponse`](https://docs.python.org/3/library/http.client.html#httpresponse-objects) object _slightly modified_
+        - an _iterable_ object, and a _context manager_
+      - raises `URLError` on protocol errors
+      - if proxy settings are detected (for example, when a `*_proxy` environment variable like `http_proxy` is set), `ProxyHandler` is default installed and makes sure the requests are handled through the proxy
+    - `class urllib.request.Request(url, data=None, headers={}, origin_req_host=None, unverifiable=False, method=None)`
+      - an abstraction of a URL request
+      - `url` should be a string containing a valid URL
+      - `data` must be an object specifying additional data to send to the server, or `None` if no such data is needed
+        - currently HTTP requests are the only ones that use data
+        - supported object types include bytes, file-like objects, and iterables of bytes-like objects
+        - if neither Content-Length nor Transfer-Encoding header field has been provided, `HTTPHandler` will set these headers according to the type of data
+        - for an HTTP POST request method, data should be a buffer in the standard _application/x-www-form-urlencoded_ format
+          - `urllib.parse.urlencode()` function takes a mapping or sequence of 2-tuples and returns an ASCII string in this format
+          - should be encoded to bytes before being used as the `data` parameter
+        - `headers` should be a dictionary, and will be treated as if [`add_header()`](https://docs.python.org/3/library/urllib.request.html#urllib.request.Request.add_header) was called with each key and value as arguments
+        - an appropriate `Content-Type` header should be included if the `data` argument is present
+          - if this header has not been provided and `data` is not `None`, `Content-Type: application/x-www-form-urlencoded` will be added as a default
+      - the next two arguments are only of interest for correct handling of third-party HTTP cookies:
+        - `origin_req_host` should be the request-host of the origin transaction, as defined by RFC 2965
+        - `unverifiable` should indicate whether the request is unverifiable, as defined by RFC 2965
+      - `method` should be a string that indicates the HTTP request method that will be used (e.g. 'HEAD')
+        - the default is `'GET'` if `data` is `None`, or `'POST'` otherwise
+      - note: the request will not work as expected if the data object is unable to deliver its content more than once (e.g. a file or an iterable that can produce the content only once) and the request is retried for HTTP redirects or authentication
+  - [`smtplib`](https://docs.python.org/3/library/smtplib.html#module-smtplib) for sending mail
+- The [Requests package](https://requests.readthedocs.io/en/master/) is recommended for a higher-level HTTP client interface
+  - [`requests.request(method, url, **kwargs)`](https://requests.readthedocs.io/en/stable/api/#requests.request)
+    - constructs and sends a `Request`
+    - returns a [`requests.Response`](https://requests.readthedocs.io/en/stable/api/#requests.Response) object
+  - [`requests.get(url, params=None, **kwargs)`](https://requests.readthedocs.io/en/stable/api/#requests.get)
+    - sends a GET request
+  - [`requests.Response.iter_lines(chunk_size=512, decode_unicode=False, delimiter=None)`](https://requests.readthedocs.io/en/stable/api/#requests.Response.iter_lines)
+    - iterates over the response data, one line at a time
+    - when `stream=True` is set on the request, this avoids reading the content at once into memory for large responses
+    - if `decode_unicode=True`, content will be decoded using the best available encoding based on the response
+  - [`requests.Response.content`](https://requests.readthedocs.io/en/stable/api/#requests.Response.content)
+    - content of the response, in bytes
+  - see also:
+    - <https://requests.readthedocs.io/en/stable/user/quickstart/>
+    - <https://requests.readthedocs.io/en/stable/user/advanced/>
+    - <https://requests.readthedocs.io/en/stable/api/>
+
+### Dates and Times
+
+- See [`datetime_test.py`](src/ch10/datetime_test.py)
+- The [`datetime`](https://docs.python.org/3/library/datetime.html#module-datetime) module supplies classes for manipulating dates and times
+- While date and time arithmetic is supported, the focus of the implementation is on efficient member extraction for output formatting and manipulation
+
+#### Aware and Naive Objects
+
+- Date and time objects may be categorized as "aware" or "naive" depending on whether or not they include timezone information
+- An **aware** object can locate itself relative to other aware objects
+  - represents a specific moment in time that is not open to interpretation
+- A **naive** object does not contain enough information to unambiguously locate itself relative to other date/time objects
+  - whether a naive object represents Coordinated Universal Time (UTC), local time, or time in some other timezone is purely up to the program, just like it is up to the program whether a particular number represents metres, miles, or mass
+- For applications requiring aware objects, `datetime` and `time` objects have an optional time zone information attribute, [`tzinfo`](https://docs.python.org/3/library/datetime.html#datetime.tzinfo)
+  - can be set to an instance of a subclass of the abstract `tzinfo` class
+  - only one concrete `tzinfo` class, the [`timezone`](https://docs.python.org/3/library/datetime.html#datetime.timezone) class, is supplied by the `datetime` module
+  - see also: <http://pytz.sourceforge.net/>
+
+#### Determining if an Object is Aware or Naive
+
+- Objects of the `date` type are always naive
+- An object of type `time` or `datetime` may be aware or naive
+  - a `datetime` object `d` is aware if both of the following hold:
+    - `d.tzinfo` is not `None`
+    - `d.tzinfo.utcoffset(d)` does not return `None`
+  - a `time` object `t` is aware if both of the following hold:
+    - `t.tzinfo` is not `None`
+    - `t.tzinfo.utcoffset(None)` does not return `None`
+- The distinction between aware and naive doesn't apply to `timedelta` objects
+
+#### Common Properties
+
+- The `date`, `datetime`, `time`, and `timezone` types share these common features:
+  - objects of these types are immutable
+  - objects of these types are hashable, meaning that they can be used as dictionary keys
+  - objects of these types support efficient pickling via the `pickle` module
+
+#### [`timedelta`](https://docs.python.org/3/library/datetime.html#datetime.timedelta) Objects
+
+- Represents a duration, the difference between two dates or times
+- `class datetime.timedelta(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0)`
+  - only `days`, `seconds` and `microseconds` are stored internally
+  - all other arguments are merged and converted (normalized) to those units
+  - `repr(timedelta(hours=24, minutes=10)) == "datetime.timedelta(days=1, seconds=600)"`
+  - see `test_timedelta_str_repr()` and `test_timedelta_normalization()`
+- `timedelta` arithmetic
+  - `ten_mins = timedelta(minutes=10)`
+  - `ten_mins * 6 == timedelta(hours=1)`
+  - `ten_mins - timedelta(seconds=60) == timedelta(minutes=9)`
+  - `ten_mins / timedelta(minutes=5) == 2.0`
+  - see `test_timedelta_arithmetic()`
+
+#### [`date`](https://docs.python.org/3/library/datetime.html#datetime.date) Objects
+
+- Represents a date (year, month and day) in an idealized calendar
+- `class datetime.date(year, month, day)`
+  - all arguments are required
+- Some class methods:
+  - `date.today()`
+    - return the current local date
+  - `date.fromisoformat(date_string)`
+    - return a date corresponding to a `date_string` given in the format `YYYY-MM-DD`
+    - `date.fromisoformat("2020-07-01") == date(2020, 7, 1)`
+  - see `test_date_class_methods()`
+- Some instance methods:
+  - `date.replace(year=self.year, month=self.month, day=self.day)`
+    - return a date with the same value, except for those parameters given new values
+  - `date.weekday()`
+    - return the day of the week as an integer, where Monday is 0 and Sunday is 6
+  - `date.isoformat()`
+    - return a string representing the date in ISO 8601 format, `YYYY-MM-DD`
+  - `date.__str__()`
+    - for a date `d`, `str(d)` is equivalent to `d.isoformat()`
+  - see `test_date_instance_methods()`
+- Some operations:
+  - `some_date = date(2020, 7, 15)`
+  - `some_date + timedelta(hours=24) == date(2020, 7, 16)`
+  - `some_date + timedelta(hours=13) == date(2020, 7, 15)`
+  - `some_date - date(2020, 7, 10) == timedelta(days=5)`
+  - `some_date < date(2020, 7, 16)`
+  - see `test_date_operations()`
+
+#### [`datetime`](https://docs.python.org/3/library/datetime.html#datetime.datetime) Objects
+
+- A single object containing all the information from a [`date`](https://docs.python.org/3/library/datetime.html#datetime.date) object and a [`time`](https://docs.python.org/3/library/datetime.html#datetime.time) object
+- `class datetime.datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)`
+  - `year`, `month` and `day` arguments are required
+  - `tzinfo` may be `None`, or an instance of a [`tzinfo`](https://docs.python.org/3/library/datetime.html#datetime.tzinfo) subclass
+- Some class methods:
+  - `datetime.now(tz=None)`
+    - returns the current local date and time
+    - if optional argument `tz` is `None` or not specified, this is like `today()`
+    - if `tz` is not `None`, it must be an instance of a `tzinfo` subclass, and the current date and time are converted to `tz`'s time zone
+    - preferred over [`today()`](https://docs.python.org/3/library/datetime.html#datetime.datetime.today) and [`utcnow()`](https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow) (by calling `datetime.now(timezone.utc)`)
+  - `datetime.fromisoformat(date_string)`
+    - returns a `datetime` corresponding to a `date_string` in one of the formats emitted by `date.isoformat()` and `datetime.isoformat()`
+      - `YYYY-MM-DD[*HH[:MM[:SS[.fff[fff]]]][+HH:MM[:SS[.ffffff]]]]`, where `*` can match any single character
+    - does not support parsing arbitrary ISO 8601 strings
+      - a more full-featured ISO 8601 parser, `dateutil.parser.isoparse` is available in the third-party package [`dateutil`](https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.isoparse)
+    - `datetime.fromisoformat("2011-11-04T00:05:23+01:00") == datetime(2011, 11, 4, 0, 5, 23, tzinfo=timezone(timedelta(seconds=3600)))`
+  - see `test_datetime_class_methods()`
+- Some instance methods:
+  - `datetime.astimezone(tz=None)`
+    - returns a `datetime` object with new `tzinfo` attribute `tz`, adjusting the date and time data so the result is the same UTC time as `self`, but in `tz`'s local time
+    - if called without arguments (or with `tz=None`) the system local timezone is assumed for the target timezone
+      - the `.tzinfo` attribute of the converted `datetime` instance will be set to an instance of timezone with the zone name and offset obtained from the OS
+    - `some_datetime.astimezone(timezone(timedelta(hours=1), "BST"))`
+  - `datetime.timetuple()`
+    - returns a [`time.struct_time`](https://docs.python.org/3/library/time.html#time.struct_time), a [named tuple](https://docs.python.org/3/glossary.html#term-named-tuple), such as returned by `time.localtime()`
+    - is equivalent to:
+      - `time.struct_time((d.year, d.month, d.day, d.hour, d.minute, d.second, d.weekday(), yday, dst))`
+      - where
+        - `yday`: `d.toordinal() - date(d.year, 1, 1).toordinal() + 1`, i.e., the day number within the current year starting with 1 for January 1st
+        - `dst`: set according to the [`dst()`](https://docs.python.org/3/library/datetime.html#datetime.datetime.dst) method
+          - `-1`: `dst()` returns `None`
+          - `1`: `dst()` returns a non-zero value
+          - `0`: `dst()` returns zero
+  - `datetime.toordinal()`
+    - return the proleptic Gregorian ordinal of the date, where January 1 of year 1 has ordinal 1
+  - `datetime.timestamp()`
+    - returns POSIX timestamp corresponding to the `datetime` instance
+    - a `float` similar to that returned by [`time.time()`](https://docs.python.org/3/library/time.html#time.time)
+  - `datetime.isoformat(sep='T', timespec='auto')`
+    - returns a string representing the date and time in ISO 8601 format:
+      - `YYYY-MM-DDTHH:MM:SS.ffffff+HH:MM[:SS[.ffffff]]`, if microsecond is not 0
+      - `YYYY-MM-DDTHH:MM:SS+HH:MM[:SS[.ffffff]]`, if microsecond is 0
+      - the UTC offset is omitted if `utcoffset()` returns `None`
+    - `some_datetime.isoformat() == "2020-07-15T12:00:00+02:00"`
+    - `some_datetime.isoformat(" ", "minutes") == "2020-07-15 12:00+02:00"`
+  - `datetime.__str__()`
+    - for a datetime instance `d`, `str(d)` is equivalent to `d.isoformat(' ')`
+  - see `test_datetime_instance_methods()`
+- Some operations:
+  - `some_datetime = datetime(2020, 7, 15, 12, 0, 0, tzinfo=timezone(timedelta(hours=2)))`
+  - `some_datetime + timedelta(hours=24) == datetime(2020, 7, 16, 12, 0, 0, tzinfo=timezone(timedelta(hours=2)))`
+  - `some_datetime + timedelta(hours=13) == datetime(2020, 7, 16, 1, 0, 0, tzinfo=timezone(timedelta(hours=2)))`
+  - `some_datetime - datetime(2020, 7, 10, 10, 0, 0, tzinfo=timezone(timedelta(hours=2))) == timedelta(days=5, hours=2)`
+  - `some_datetime - datetime(2020, 7, 15, 10, 0, 0, tzinfo=timezone.utc) == timedelta()`
+  - see `test_datetime_operations()`
+
+#### `strftime()` and `strptime()` Behavior
+
+- `strftime()`
+  - instance method
+  - supported by `date`, `datetime`, and `time` objects
+  - creates a string representing the time under the control of an explicit format string
+  - `some_datetime.strftime("%A, %d %B %Y %I:%M%p %Z") == "Wednesday, 15 July 2020 12:00PM UTC+02:00"`
+  - see `test_strftime()`
+- `datetime.strptime()`
+  - class method
+  - creates a `datetime` object from a string representing a date and time and a corresponding format string
+  - `datetime.strptime("15/7/20 12:00 +0200", "%d/%m/%y %H:%M %z")`
+  - see `test_strptime()`
+- Format codes: see <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes>
+
+### Data Compression
+
+- Common data archiving and compression formats are directly supported by modules including: [`zlib`](https://docs.python.org/3/library/zlib.html#module-zlib), [`gzip`](https://docs.python.org/3/library/gzip.html#module-gzip), [`bz2`](https://docs.python.org/3/library/bz2.html#module-bz2), [`lzma`](https://docs.python.org/3/library/lzma.html#module-lzma), [`zipfile`](https://docs.python.org/3/library/zipfile.html#module-zipfile) and [`tarfile`](https://docs.python.org/3/library/tarfile.html#module-tarfile)
+
+#### `zipfile`
+
+- See [`zipfile_test.py`](src/ch10/zipfile_test.py)
+- The [`zipfile`](https://docs.python.org/3/library/zipfile.html#module-zipfile) module provides tools to create, read, write, append, and list a ZIP file
+- Does not currently handle multi-disk ZIP files
+- Can handle ZIP files that use the ZIP64 extensions (that is ZIP files that are more than 4 GiB in size)
+- Supports decryption of encrypted files in ZIP archives, but it currently cannot create an encrypted file
+  - extremely slow as it is implemented in native Python rather than C
+- `class zipfile.ZipFile(file, mode='r', compression=ZIP_STORED, allowZip64=True, compresslevel=None, *, strict_timestamps=True)`
+  - opens a ZIP file, where `file` can be a path to a file (a string), a file-like object or a path-like object
+  - `mode` parameter:
+    - `'r'` to read an existing file
+    - `'w'` to truncate and write a new file
+    - `'a'` to append to an existing file
+    - `'x'` to exclusively create and write a new file
+  - `compression` is the ZIP compression method to use when writing the archive
+    - should be `ZIP_STORED`, `ZIP_DEFLATED`, `ZIP_BZIP2` or `ZIP_LZMA`
+  - if `allowZip64` is `True` (the default) `zipfile` will create ZIP files that use the ZIP64 extensions when the zipfile is larger than 4 GiB
+  - `compresslevel` controls the compression level to use when writing files to the archive
+    - when using `ZIP_STORED` or `ZIP_LZMA` it has no effect
+    - when using `ZIP_DEFLATED`, integers 0 (no compression), 1 (best speed) through 9 (best compression) are accepted
+      - see [`zlib`](https://docs.python.org/3/library/zlib.html#zlib.compressobj) for more information
+    - when using `ZIP_BZIP2` integers 1 through 9 are accepted
+      - see [`bz2`](https://docs.python.org/3/library/bz2.html#bz2.BZ2File) for more information
+  - the `strict_timestamps` argument, when set to `False`, allows to zip files older than 1980-01-01 at the cost of setting the timestamp to 1980-01-01
+    - similar behavior occurs with files newer than 2107-12-31, the timestamp is also set to the limit
+  - `ZipFile` is also a context manager and therefore supports the `with` statement
+- `ZipFile.namelist()`
+  - returns a list of archive members by name
+- `ZipFile.open(name, mode='r', pwd=None, *, force_zip64=False)`
+  - access a member of the archive as a binary file-like object
+  - `name` can be either the name of a file within the archive or a `ZipInfo` object
+  - `pwd` is the password used to decrypt encrypted ZIP files
+  - the `mode` parameter, if included, must be `'r'` (the default) or `'w'`
+    - `mode='r'`: the file-like object (`ZipExtFile`) is read-only and provides the following methods:
+      - `read()`, `readline()`, `readlines()`, `seek()`, `tell()`, `__iter__()`, `__next__()`
+    - `mode='w'`: a writable file handle is returned, which supports the `write()` method
+  - `open()` is also a context manager
+- `ZipFile.extract(member, path=None, pwd=None)`
+  - extracts a member from the archive to the current working directory
+  - `member` must be its full name or a `ZipInfo` object
+  - `path` specifies a different directory to extract to
+  - `pwd` is the password used for encrypted files
+  - returns the normalized path created (a directory or new file)
+- `ZipFile.extractall(path=None, members=None, pwd=None)`
+  - extract all members from the archive to the current working directory
+  - `path` specifies a different directory to extract to
+  - `members` is optional and must be a subset of the list returned by `namelist()`
+- `ZipFile.read(name, pwd=None)`
+  - returns the bytes of the file name in the archive
+  - `name` is the name of the file in the archive, or a `ZipInfo` object
+  - the archive must be open for read or append
+- `ZipFile.testzip()`
+  - reads all the files in the archive and check their CRCs and file headers
+  - returns the name of the first bad file, or else returns `None`
+- `ZipFile.write(filename, arcname=None, compress_type=None, compresslevel=None)`
+  - writes the file named `filename` to the archive, giving it the archive name `arcname` (by default, this will be the same as filename, but without a drive letter and with leading path separators removed)
+  - `compress_type` overrides the value given for the `compression` parameter to the constructor for the new entry
+  - `compresslevel` overrides the constructor if given
+  - the archive must be open with mode `'w'`, `'x'` or `'a'`
+- `ZipFile.writestr(zinfo_or_arcname, data, compress_type=None, compresslevel=None)`
+  - writes a file into the archive
+  - the contents is `data`, which may be either a `str` or a `bytes` instance
+  - `zinfo_or_arcname` is either the file name it will be given in the archive, or a `ZipInfo` instance
+  - the archive must be opened with mode `'w'`, `'x'` or `'a'`
+- `zipfile.is_zipfile(filename)`
+  - returns `True` if `filename` is a valid ZIP file based on its magic number, otherwise returns `False`
+  - `filename` may be a file or file-like object
+
+### Performance Measurement
+
+- The [`timeit`](https://docs.python.org/3/library/timeit.html#module-timeit) module provides a simple way to time small bits of Python code
+- Has both a command line interface as well as a Python interface
+- In contrast to `timeit`'s fine level of granularity, the [`profile`](https://docs.python.org/3/library/profile.html#module-profile) and [`pstats`](https://docs.python.org/3/library/profile.html#module-pstats) modules provide tools for identifying time critical sections in larger blocks of code
+
+### Quality Control
+
+- The [`doctest`](https://docs.python.org/3/library/doctest.html#module-doctest) module provides a tool for scanning a module and validating tests embedded in a program's docstrings
+  - test construction is as simple as cutting-and-pasting a typical call along with its results into the docstring
+  - improves the documentation by providing the user with an example and it allows the `doctest` module to make sure the code remains true to the documentation
+  - see [`doctest_factorial.py`](src/ch10/doctest_factorial.py)
+
+```console
+$ python ch10/doctest_factorial.py
+**********************************************************************
+File "ch10/doctest_factorial.py", line 37, in __main__.factorial
+Failed example:
+    factorial(1)
+Expected:
+    0
+Got:
+    1
+**********************************************************************
+1 items had failures:
+   1 of   7 in __main__.factorial
+***Test Failed*** 1 failures.
+```
+
+```console
+$ python ch10/doctest_factorial.py -v
+Trying:
+    factorial(5)
+Expecting:
+    120
+ok
+Trying:
+    [factorial(n) for n in range(6)]
+Expecting:
+    [1, 1, 2, 6, 24, 120]
+ok
+Trying:
+    ...
+ok
+Trying:
+    factorial(1e100)
+Expecting:
+    Traceback (most recent call last):
+        ...
+    OverflowError: n too large
+ok
+Trying:
+    factorial(1)
+Expecting:
+    0
+**********************************************************************
+File "ch10/doctest_factorial.py", line 37, in __main__.factorial
+Failed example:
+    factorial(1)
+Expected:
+    0
+Got:
+    1
+1 items passed all tests:
+   1 tests in __main__
+**********************************************************************
+1 items had failures:
+   1 of   7 in __main__.factorial
+8 tests in 2 items.
+7 passed and 1 failed.
+***Test Failed*** 1 failures.
+```
+
+### Batteries Included
+
+#### `csv`
+
+- See [`csv_test.py`](src/ch10/csv_test.py)
+- The [`csv`](https://docs.python.org/3/library/csv.html#module-csv) module implements classes to read and write tabular data in CSV format
+  - default registered dialects: `'excel'`, `'excel-tab'`, `'unix'`
+- Some `csv` module functions:
+  - `csv.reader(csvfile, dialect='excel', **fmtparams)`
+    - returns a reader object which will iterate over lines in the given `csvfile`
+    - `csvfile` can be any object which supports the iterator protocol and returns a string each time its `__next__()` method is called
+      - file objects and list objects are both suitable
+      - if `csvfile` is a file object, it should be opened with `newline=''`
+    - optional `dialect` parameter can be given which is used to define a set of parameters specific to a particular CSV dialect
+      - an instance of a subclass of the `Dialect` class
+      - one of the strings returned by the `list_dialects()` function
+    - optional `fmtparams` keyword arguments can be given to override individual formatting parameters in the current dialect
+      - see 'Dialects and formatting parameters' below
+    - each row read from the csv file is returned as a list of strings
+    - no automatic data type conversion is performed unless the `QUOTE_NONNUMERIC` format option is specified
+      - unquoted fields are transformed into `float`s
+  - `csv.writer(csvfile, dialect='excel', **fmtparams)`
+    - returns a writer object responsible for converting the user's data into delimited strings on the given file-like object
+    - `csvfile` can be any object with a `write()` method
+      - if `csvfile` is a file object, it should be opened with `newline=''`
+    - optional `dialect` parameter - see above
+    - optional `fmtparams` keyword arguments - see above
+    - the value `None` is written as the empty string
+    - all other non-string data are stringified with `str()` before being written
+  - `csv.register_dialect(name[, dialect[, **fmtparams]])`
+    - associate dialect with `name` (a string)
+    - the dialect can be specified either by:
+      - passing a sub-class of `Dialect`
+      - `fmtparams` keyword arguments
+      - both, with keyword arguments overriding parameters of the dialect
+- Some `csv` module classes:
+  - `class csv.DictReader(f, fieldnames=None, restkey=None, restval=None, dialect='excel', *args, **kwds)`
+    - creates an object that operates like a regular reader but maps the information in each row to a `dict` whose keys are given by the optional `fieldnames` parameter
+    - `fieldnames` parameter is a sequence
+      - if omitted, the values in the first row of file `f` will be used as the field names
+    - if a row has more fields than `fieldnames`, the remaining data is put in a list and stored with the fieldname specified by `restkey`
+    - if a non-blank row has fewer fields than `fieldnames`, the missing values are filled-in with the value of `restval`
+    - all other optional or keyword arguments are passed to the underlying `reader` instance
+  - `class csv.DictWriter(f, fieldnames, restval='', extrasaction='raise', dialect='excel', *args, **kwds)`
+    - creates an object which operates like a regular writer but maps dictionaries onto output rows
+    - `fieldnames` parameter is a sequence of keys that identify the order in which values in the dictionary passed to the `writerow()` method are written to file `f`
+    - optional `restval` parameter specifies the value to be written if the dictionary is missing a key in `fieldnames`
+    - if the dictionary passed to the `writerow()` method contains a key not found in `fieldnames`, the optional `extrasaction` parameter indicates what action to take
+      - if it is set to `'raise'`, the default value, a `ValueError` is raised
+      - if it is set to `'ignore'`, extra values in the dictionary are ignored
+    - any other optional or keyword arguments are passed to the underlying `writer` instance
+  - `class csv.Dialect`
+    - a container class relied on primarily for its attributes, which are used to define the parameters for a specific `reader` or `writer` instance
+- Dialects and formatting parameters
+  - to make it easier to specify the format of input and output records, specific formatting parameters are grouped together into dialects
+  - a dialect is a subclass of the `Dialect` class having a set of specific methods and a single `validate()` method
+  - when creating `reader` or `writer` objects, the programmer can specify a string or a subclass of the `Dialect` class as the `dialect` parameter
+  - in addition to, or instead of, the `dialect` parameter, the programmer can also specify individual formatting parameters, which have the same names as the attributes defined below for the `Dialect` class
+  - some attributes:
+    - `Dialect.delimiter` (default: `','`)
+      - a one-character string used to separate fields
+    - `Dialect.quoting` (default: `QUOTE_MINIMAL`)
+      - controls when quotes should be generated by the writer and recognised by the reader
+      - can take on any of the `QUOTE_*` constants
+- Reader objects
+  - some reader object (`DictReader` instances and objects returned by the `reader()` function) methods:
+    - `csvreader.__next__()`
+      - returns the next row of the reader's iterable object as a
+        - `list`: if the object was returned from `reader()`
+        - `dict`: if it is a `DictReader` instance
+    - `csvreader.fieldnames` (for `DictReader`)
+      - if not passed as a parameter when creating the object, this attribute is initialized upon first access or when the first record is read from the file
+- Writer objects
+  - some writer object (`DictWriter` instances and objects returned by the `writer()` function) methods:
+    - `csvwriter.writerow(row)`
+      - writes the `row` parameter to the writer's file object
+      - a `row` must be
+        - for `writer` objects: an iterable of strings or numbers
+        - for `DictWriter` objects: a dictionary mapping fieldnames to strings or numbers (by passing them through `str()` first)
+      - returns the return value of the call to the `write` method of the underlying file object
+    - `csvwriter.writerows(rows)`
+      - writes all elements in `rows` (an iterable of `row` objects as described above) to the writer's file object
+    - `DictWriter.writeheader()` (for `DictWriter` objects)
+      - writes a row with the field names (as specified in the constructor) to the writer's file object
+      - returns the return value of the `csvwriter.writerow()` call used internally
+
+#### `xml.etree.ElementTree`
+
+- See [`elementtree_test.py`](src/ch10/elementtree_test.py)
+- Python's interfaces for processing XML are grouped in the [`xml`](https://docs.python.org/3/library/xml.html#module-xml) package
+- **XML handling submodules**
+  - `xml.etree.ElementTree`
+  - [`xml.dom`](https://docs.python.org/3/library/xml.dom.html#module-xml.dom): the DOM API definition
+  - [`xml.dom.minidom`](https://docs.python.org/3/library/xml.dom.minidom.html#module-xml.dom.minidom): a minimal DOM implementation
+  - [`xml.dom.pulldom`](https://docs.python.org/3/library/xml.dom.pulldom.html#module-xml.dom.pulldom): support for building partial DOM trees
+  - [`xml.sax`](https://docs.python.org/3/library/xml.sax.html#module-xml.sax): SAX2 base classes and convenience functions
+  - [`xml.parsers.expat`](https://docs.python.org/3/library/pyexpat.html#module-xml.parsers.expat): the Expat parser binding
+- The [**`xml.etree.ElementTree`**](https://docs.python.org/3/library/xml.etree.elementtree.html#module-xml.etree.ElementTree) module implements a simple and efficient API for parsing and creating XML data
+- `xml.etree.ElementTree` has two classes for representing XML data
+  - [`class ElementTree.ElementTree(element=None, file=None)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.ElementTree)
+    - the whole XML document as a tree
+  - [`class ElementTree.Element(tag, attrib={}, **extra)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element)
+    - a single node in this tree
+- **Parsing XML data from a string or from a file**
+  - [`ElementTree.fromstring(text, parser=None)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.fromstring)
+    - same as [`XML()`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.XML)
+    - `text` is a string containing XML data
+    - returns an `Element` instance, which is the root element of the parsed tree
+    - `root = ET.fromstring('<data><country name="Liechtenstein"/><country name="Panama"/></data>')`
+    - see `test_parse_string_pretty_print()`
+  - [`ElementTree.parse(source, parser=None)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.parse)
+    - parses an XML section into an element tree
+    - `source` is a filename or file object containing XML data
+    - returns an `ElementTree` instance
+    - `tree = ET.parse(xml_file)`
+    - see `test_parse_file()`
+- Push and pull APIs
+  - [`class ElementTree.XMLParser(*, target=None, encoding=None)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.XMLParser)
+    - event-based parsing, parsing events are translated to a push API
+  - [`class ElementTree.XMLPullParser(events=None)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.XMLPullParser)
+    - pull parser for non-blocking applications
+- Pretty-printing an ElementTree requires the use of `xml.dom.minidom`
+  - see `test_parse_string_pretty_print()`
+- **Visiting all children in order**
+  - [`ElementTree.iter(tag=None)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.ElementTree.iter) (same with `Element`)
+    - creates and returns a tree iterator for the root element
+    - loops over all elements in this tree, in section order
+    - `tag` is the tag to look for (default is to return all elements)
+    - `for elem in root.iter()`
+  - see `test_traverse_all()`
+- **Finding elements**
+  - [`ElementTree.findall(match, namespaces=None)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.ElementTree.findall) (same with `Element`)
+    - finds all matching subelements, by tag name or XPath
+    - returns a list containing all matching elements in document order
+    - `for neighbor in tree.findall(".//neighbor")`
+  - [`ElementTree.find(match, namespaces=None)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.ElementTree.find) (same with `Element`)
+    - finds the first subelement matching `match`
+    - `match` may be a tag name or a path
+    - returns an element instance or `None`
+    - `country.find("rank")`
+  - [`Element.get(key, default=None)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element.get)
+    - gets the element attribute named `key`
+    - returns the attribute value, or `default` if the attribute was not found
+    - `country.get("name")`
+  - [`Element.text`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element.text)
+  - see `test_find()`
+- **Modifying an XML document**
+  - `Element.text`
+  - [`Element.set(key, value)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element.set)
+    - sets the attribute `key` on the element to `value`
+    - `rank_elem.set("value", "1")`
+  - [`Element.append(subelement)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element.append)
+    - adds the element `subelement` to the end of this element's internal list of subelements
+    - `tree.getroot().append(malaysia)`
+  - [`Element.insert(index, subelement)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element.insert)
+    - inserts `subelement` at the given position in this element
+    - `tree.getroot().insert(1, monaco)`
+  - [`Element.remove(subelement)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element.remove)
+    - removes `subelement` from the element
+    - unlike the `find*` methods this method compares elements based on the instance identity, not on tag value or contents
+    - `country.remove(neighbor)`
+  - see `test_modify()`
+- **Building an XML document**
+  - note: the following can also be used to modify an XML document
+  - [`ElementTree.SubElement(parent, tag, attrib={}, **extra)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.SubElement)
+    - subelement factory
+    - creates an element instance, and appends it to an existing element
+    - returns an element instance
+    - `country = ET.SubElement(root, "country", {"name": "Liechtenstein"})`
+  - [`Element.extend(subelements)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element.extend)
+    - appends subelements from a sequence object with zero or more elements
+  - see `test_build()`
+- **Writing an XML document to a file**
+  - [`ElementTree.write(file, encoding="us-ascii", xml_declaration=None, default_namespace=None, method="xml", *, short_empty_elements=True)`](https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.ElementTree.write)
+    - writes the element tree to a file, as XML
+    - `file` is a file name, or a file object opened for writing
+    - the output is either a string (`str`) or binary (`bytes`)
+      - controlled by the `encoding` argument
+        - if encoding is `"unicode"`, the output is a string; otherwise, it's binary
+    - `write(tmp_xml_path, "UTF-8", True)`
+  - see `test_write()` and `test_pretty_write()`
+- **Parsing XML with namespaces**
+  - if the XML input has namespaces, tags and attributes with prefixes in the form `prefix:sometag` get expanded to `{uri}sometag`
+    - `prefix` is replaced by the full URI
+  - if there is a default namespace, that full URI gets prepended to all of the non-prefixed tags
+  - one way to search and explore namespaced XML is to manually add the URI to every tag or attribute in the XPath of a `find()` or `findall()`
+    - `tree.find("{http://people.example.com}actor")`
+  - a better way to search namespaced XML is to create a dictionary with your own prefixes and use those in the search functions
+    - `tree.find("people:actor", namespaces)`
+  - see `test_namespace_manual()` and `test_namespace_dict()`
+
+#### `sqlite3`
+
+- See [`sqlite3_test.py`](src/ch10/sqlite3_test.py)
+- SQLite is a C library that provides a lightweight disk-based database that doesn't require a separate server process
+- The [`sqlite3`](https://docs.python.org/3/library/sqlite3.html#module-sqlite3) module provides a SQL interface compliant with the DB-API 2.0 specification described by [PEP 249](https://www.python.org/dev/peps/pep-0249)
+- **SQLite and python types**
+
+| Python type | SQLite type |
+| ----------- | ----------- |
+| `None`      | `NULL`      |
+| `int`       | `INTEGER`   |
+| `float`     | `REAL`      |
+| `str`       | `TEXT`      |
+| `bytes`     | `BLOB`      |
+
+- **Creating a database**
+  - [`sqlite3.connect(database[, timeout, detect_types, isolation_level, check_same_thread, factory, cached_statements, uri])`](https://docs.python.org/3/library/sqlite3.html#sqlite3.connect)
+    - opens a connection to the SQLite database file database
+    - by default returns a `Connection` object, unless a custom factory is given
+  - file-based database
+    - an SQLite database is stored as a single file on the file system
+    - the library manages access to the file, including locking it to prevent corruption when multiple writers use it
+    - the database is created the first time the file is accessed, but the application is responsible for managing the table definitions, or schema, within the database
+    - `sqlite3.connect(tmp_path.joinpath("sqlite3.db"))`
+    - see `fixture_connect_file_db()`
+  - in-memory database
+    - SQLite supports managing an entire database in RAM
+    - each connection creates a separate database instance
+    - `sqlite3.connect(":memory:")`
+    - see `fixture_connect_memory_db()`
+- **Using the connection as a context manager**
+  - connection objects can be used as context managers that automatically commit or rollback transactions
+  - in the event of an exception, the transaction is rolled back; otherwise, the transaction is committed
+  - see `test_context_manager_commit()` and `test_context_manager_rollback()`
+- **Performing SQL commands**
+  - [`Cursor.executescript(sql_script)`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.executescript) (also with [`Connection`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.executescript))
+    - non-standard convenience method for executing multiple SQL statements at once
+    - returns a cursor
+    - see `create_schema()`
+  - [`Cursor.executemany(sql, seq_of_parameters)`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.executemany) (also with [`Connection`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.executemany))
+    - executes an SQL command against all parameter sequences or mappings found in the `seq_of_parameters`
+    - `seq_of_parameters` can be a list, tuple, iterator, generator or dictionary
+    - returns a cursor
+    - see `insert_data()`
+  - [`Cursor.execute(sql[, parameters])`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.execute) (also with [`Connection`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.execute))
+    - executes an SQL statement
+    - returns a cursor
+  - `execute()` and `executemany()` support two kinds of placeholders:
+    - question marks (qmark style)
+      - `cursor.execute("insert into tasks (details, deadline) values (?, ?);", ("Task 1", "2020-07-11"))`
+      - see `test_context_manager_commit()`
+    - named placeholders (named style)
+      - `cursor.execute("insert into tasks (details, deadline) values (:det, :dline);", {"det": "Task 1", "dline": "2020-07-11"})`
+      - see `test_context_manager_rollback()`
+- **Retrieving data**
+  - cursor as an iterator
+    - `list(cursor.execute("select * from tasks order by priority"))`
+    - see `test_retrieve_iterator()`
+  - [`Cursor.fetchone()`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.fetchone)
+    - fetches the next row of a query result set
+    - returns a single sequence, or `None` when no more data is available
+    - see `test_retrieve_fetch_one()`
+  - [`Cursor.fetchall()`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.fetchall)
+    - fetches all (remaining) rows of a query result, returning a list
+    - returns an empty list if no rows are available
+    - see `test_retrieve_fetch_all()`
+  - [`class sqlite3.Row`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Row)
+    - serves as a highly optimized [`row_factory`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.row_factory) for `Connection` objects
+    - supports mapping access by column name and index, iteration, representation, equality testing and `len()`
+    - if two `Row` objects have exactly the same columns and their members are equal, they compare equal
+    - see `test_retrieve_row()`
+  - [`Connection.row_factory`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.row_factory)
+    - a callable:
+      - accepts the cursor and the original row (as a tuple)
+      - returns a customized result row object
+    - see `test_retrieve_object()`
+- **Adapters and converters**
+  - [`sqlite3.register_adapter(type, callable)`](https://docs.python.org/3/library/sqlite3.html#sqlite3.register_adapter)
+    - registers a callable to convert the custom Python type type into one of SQLite's supported types
+  - [`sqlite3.register_converter(typename, callable)`](https://docs.python.org/3/library/sqlite3.html#sqlite3.register_converter)
+    - registers a callable to convert a bytestring from the database into a custom Python type
+  - [`sqlite3.PARSE_DECLTYPES`](https://docs.python.org/3/library/sqlite3.html#sqlite3.PARSE_DECLTYPES)
+    - constant, to be used with the `detect_types` parameter of the `connect()` function
+    - makes the `sqlite3` module parse the declared type for each column it returns
+      - e.g., "integer" from "integer primary key"
+    - it will look into the converters dictionary and use the converter function registered for that type there
+  - default adapters and converters for the `date` and `datetime` types
+    - the default adapters send them as ISO dates/ISO timestamps to SQLite
+    - the default converters are registered under the name "date" for `datetime.date`, and "timestamp" for `datetime.datetime`
+    - see `test_default_date_adapter_converter()`
+- **Saving a database**
+  - [`iterdump()`](https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.iterdump)
+    - returns an iterator to dump the database in an SQL text format
+    - see `test_save_database()`
+
+#### `gettext`
+
+- The [`gettext`](https://docs.python.org/3/library/gettext.html#module-gettext) module provides internationalization (I18N) and localization (L10N) services for Python modules and applications
+- Supports both the GNU gettext message catalog API and a higher level, class-based API
+- Compatible with the GNU `gettext` library for message translation and catalog management
+- Provides tools to
+  - extract messages from a set of source files
+  - build a message catalog containing translations
+  - use that message catalog to display an appropriate message for the user at runtime
+- Translation workflow overview
+  1. identify and mark up literal strings in the source code that contain messages to translate
+  2. extract the messages
+     - use `xgettext` to extract them and create a `.pot` (portable object template) file, or translation template
+  3. translate the messages
+     - give a copy of the `.pot` file to the translator, changing the extension to `.po` (portable object)
+     - the translator should update the header text in the file and provide translations for all of the strings
+  4. "compile" the message catalog from the translation
+     - compile the completed `.po` file to the binary catalog format using `msgfmt`
+     - the binary format is used by the runtime catalog lookup code
+  5. load and activate the appropriate message catalog at runtime
+     - add a few lines to the application to configure and load the message catalog and install the translation function
+- Creating message catalogs from source code
+  - `gettext` works by looking up literal strings in a database of translations, and pulling out the appropriate translated string
+  - bind the _lookup function_ to the name `"_"` (a single underscore character)
+    - see [`gettext_example.py`](src/ch10/gettext_example.py)
+  - the message extraction program, `xgettext`, looks for messages embedded in calls to the catalog lookup functions
+    - `_('This message is in the script.')`
+  - extract the message and create the `.pot` file, using `pygettext.py` or `xgettext`
+    - `$ xgettext -o example.pot gettext_example.py`
+    - see [`example.pot`](src/ch10/example.pot)
+  - message catalogs are installed into directories organized by _domain_ and _language_
+    - domain: provided by the application or library, and is usually a unique value like the application name, e.g., `example`
+    - language value: provided by the user's environment at runtime
+      - through one of the environment variables `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, or `LANG`, depending on their configuration and platform
+  - create the required directory structure and copy the template in to the right spot
+    - `$localedir/$language/LC_MESSAGES/$domain.po`, e.g., `locale/en_GB/LC_MESSAGES/example.po`
+    - `locale` directory inside the source tree
+    - better to use a directory accessible system-wide so that all users have access to the message catalogs
+  - edit `example.po`
+    - change the values in the header
+    - set the alternate messages
+      - see [`example.po`](src/ch10/locale/en_GB/LC_MESSAGES/example.po)
+  - build the catalog from the `.po` file using `msgformat`
+    - `cd locale/en_GB/LC_MESSAGES && msgfmt -o example.mo example.po`
+  - running `gettext_example.py` now produces:
+    - `This message is in the en_GB catalog.`
+- Plural values
+  - `gettext` treats pluralization as a special case
+  - depending on the language, the difference between the singular and plural forms of a message may vary by
+    - the ending of a single word
+    - the entire sentence structure
+  - use `ngettext()` to access the plural substitution for a message
+    - see [`gettext_example.py`](src/ch10/gettext_example.py)
+  - in the `.po` file, since there are alternate forms to be translated
+    - the replacements are listed in an array
+    - the library needs to be told about the way plurals are formed so it knows how to index into the array for any given count value
+      - the line `"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"` includes two values to replace manually
+      - `nplurals`: an integer indicating the size of the array (the number of translations used)
+      - `plural`: a C language expression for converting the incoming quantity to an index in the array when looking up the translation
+      - e.g., `"Plural-Forms: nplurals=2; plural=n != 1;\n"`
+      - see [`example.po`](src/ch10/locale/en_GB/LC_MESSAGES/example.po)
+- Switching Translations
+  - earlier examples use a single translation for the duration of the program
+  - some situations, especially web applications, need to use different message catalogs at different times, without exiting and resetting the environment
+    - the class-based API provided in `gettext` will be more convenient
+    - API calls are essentially the same as the global calls, but the message catalog object is exposed and can be manipulated directly, so that multiple catalogs can be used
+- See also:
+  - <https://pymotw.com/3/gettext/index.html>
+  - <https://www.gnu.org/software/gettext/manual/gettext.html>
 
 ## Source
 

@@ -2,7 +2,7 @@
 
 from io import StringIO
 from pathlib import Path
-from typing import Final, List, Tuple
+from typing import Final, List
 
 import pytest
 

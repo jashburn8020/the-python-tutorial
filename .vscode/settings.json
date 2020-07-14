@@ -1,5 +1,4 @@
 {
-  "python.pythonPath": "venv/bin/python3",
   "python.formatting.provider": "black",
   "python.testing.pytestArgs": ["src"],
   "python.testing.unittestEnabled": false,
