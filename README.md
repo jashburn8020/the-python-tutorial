@@ -106,6 +106,22 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
       - [`csv`](#csv)
       - [`xml.etree.ElementTree`](#xmletreeelementtree)
       - [`sqlite3`](#sqlite3)
+      - [`gettext`](#gettext)
+  - [11. Brief Tour of the Standard Library - Part II](#11-brief-tour-of-the-standard-library---part-ii)
+    - [Output Formatting](#output-formatting)
+      - [`reprlib`](#reprlib)
+      - [`pprint`](#pprint)
+      - [`locale`](#locale)
+    - [Templating](#templating)
+    - [Multi-threading](#multi-threading)
+    - [Logging](#logging)
+    - [Weak References](#weak-references)
+    - [Tools for Working with Lists](#tools-for-working-with-lists)
+      - [`array`](#array)
+      - [`collections` and `deque`](#collections-and-deque)
+      - [`bisect`](#bisect)
+      - [`heapq`](#heapq)
+    - [Decimal Floating Point Arithmetic](#decimal-floating-point-arithmetic)
   - [Source](#source)
 
 ## 3. An Informal Introduction to Python
@@ -2564,6 +2580,389 @@ Got:
 - See also:
   - <https://pymotw.com/3/gettext/index.html>
   - <https://www.gnu.org/software/gettext/manual/gettext.html>
+
+## 11. Brief Tour of the Standard Library - Part II
+
+### Output Formatting
+
+#### `reprlib`
+
+- See [`reprlib_test.py`](src/ch11/reprlib_test.py)
+- The [`reprlib`](https://docs.python.org/3/library/reprlib.html#module-reprlib) module provides a version of `repr()` customized for abbreviated displays of large or deeply nested containers
+- Some `Repr` instance attributes:
+  - [`maxstring`](https://docs.python.org/3/library/reprlib.html#reprlib.Repr.maxstring)
+    - limit on the number of characters in the representation of the string
+    - default is 30
+    - see `test_reprlib_string()`
+  - [`maxdict`](https://docs.python.org/3/library/reprlib.html#reprlib.Repr.maxdict)
+    - limit on the number of entries represented for the the dictionary
+    - default is 4 entries
+    - see `test_reprlib_dict()`
+
+#### `pprint`
+
+- See [`pprint_test.py`](src/ch11/pprint_test.py)
+- The [`pprint`](https://docs.python.org/3/library/pprint.html#module-pprint) module offers more sophisticated control over printing both built-in and user defined objects in a way that is readable by the interpreter
+- When the result is longer than one line, the "pretty printer" adds line breaks and indentation to more clearly reveal data structure
+- [`class pprint.PrettyPrinter(indent=1, width=80, depth=None, stream=None, *, compact=False, sort_dicts=True)`](https://docs.python.org/3/library/pprint.html#pprint.PrettyPrinter)
+  - constructs a `PrettyPrinter` instance
+  - `stream`: if not specified, `PrettyPrinter` uses `sys.stdout`
+- Some `PrettyPrinter` instance methods:
+  - [`PrettyPrinter.pformat(object)`](https://docs.python.org/3/library/pprint.html#pprint.PrettyPrinter.pformat)
+    - returns the formatted representation of `object`
+    - see `test_pretty_printer()`
+  - [`PrettyPrinter.pprint(object)`](https://docs.python.org/3/library/pprint.html#pprint.PrettyPrinter.pprint)
+    - prints the formatted representation of object on the configured stream, followed by a newline
+- Some module shortcut functions:
+  - [`pprint.pformat(object, indent=1, width=80, depth=None, *, compact=False, sort_dicts=True)`](https://docs.python.org/3/library/pprint.html#pprint.pformat)
+    - returns the formatted representation of `object` as a string
+  - [`pprint.pprint(object, stream=None, indent=1, width=80, depth=None, *, compact=False, sort_dicts=True)`](https://docs.python.org/3/library/pprint.html#pprint.pprint)
+    - prints the formatted representation of `object` on `stream`, followed by a newline
+    - see `test_pprint_pformat()`
+  - [`pprint.pp(object, \*args, sort_dicts=False, \*\*kwargs)](https://docs.python.org/3/library/pprint.html#pprint.pp)`
+    - prints the formatted representation of `object` followed by a newline
+    - see `test_pp()`
+
+#### `locale`
+
+- See [`locale_test.py`](src/ch11/locale_test.py)
+- The [`locale`](https://docs.python.org/3/library/locale.html#module-locale) module accesses the POSIX locale database of culture-specific data formats
+- Note: on Linux
+  - check supported locales: `locale -a`
+  - add locale: `sudo locale-gen de_DE.UTF-8`
+  - update locale settings: `sudo update-locale`
+- Some module functions:
+  - [`locale.setlocale(category, locale=None)`](https://docs.python.org/3/library/locale.html#locale.setlocale)
+    - modifies the locale setting for the `category`
+    - `locale` may be a string, or an iterable of two strings (language code and encoding)
+    - returns the new locale settng as a string
+  - [`locale.resetlocale(category=LC_ALL)`](https://docs.python.org/3/library/locale.html#locale.resetlocale)
+    - sets the locale for `category` to the default setting
+  - [`locale.format_string(format, val, grouping=False, monetary=False)`](https://docs.python.org/3/library/locale.html#locale.format_string)
+    - formats a number `val` according to the current `LC_NUMERIC` setting
+    - the format follows the conventions of the `%` operator
+  - [`locale.currency(val, symbol=True, grouping=False, international=False)`](https://docs.python.org/3/library/locale.html#locale.currency)
+    - formats a number `val` according to the current `LC_MONETARY` settings
+  - [`locale.atof(string)`](https://docs.python.org/3/library/locale.html#locale.atof)
+    - converts a string to a floating point number, following the `LC_NUMERIC` settings
+  - [`locale.atoi(string)`](https://docs.python.org/3/library/locale.html#locale.atoi)
+    - converts a string to an integer, following the `LC_NUMERIC` conventions
+
+### Templating
+
+- See [`template_test.py`](src/ch11/template_test.py)
+- The `string` module includes a versatile [`Template class`](https://docs.python.org/3/library/string.html#string.Template) with a simplified syntax suitable for editing by end-users
+- The format uses placeholder names formed by `$` with valid Python identifiers (alphanumeric characters and underscores)
+  - surrounding the placeholder with braces allows it to be followed by more alphanumeric letters with no intervening spaces
+  - `Template("${village}folk send $$10 to $cause")`
+- [`substitute(mapping={}, /, **kwds)`](https://docs.python.org/3/library/string.html#string.Template.substitute)
+  - performs the template substitution
+  - returns a new string
+  - see `test_template_substitute()`
+  - raises `KeyError` exception if placeholders are missing from `mapping` and `kwds`
+  - raises `ValueError` exception if a literal `$` is not escaped using `$$`
+  - see `test_template_exception()`
+- [`safe_substitute(mapping={}, /, **kwds)`](https://docs.python.org/3/library/string.html#string.Template.safe_substitute)
+  - like `substitute()`, except that
+    - if placeholders are missing from `mapping` and `kwds`, the original placeholder will appear in the resulting string intact
+    - any other appearances of the `$` will simply return `$`
+  - see `test_template_safe_substitute()`
+- You can derive subclasses of `Template` to customize the placeholder syntax, delimiter character, or the entire regular expression used to parse template strings
+  - by overriding certain class attributes
+  - see `test_template_customise()`
+
+### Multi-threading
+
+TBD - as a separate chapter
+
+### Logging
+
+- See [`logging_test.py`](src/ch11/logging_test.py)
+- The logging library offers several categories of components:
+  - _loggers_: expose the interface that application code directly uses
+  - _handlers_: send the log records (created by loggers) to the appropriate destination
+  - _filters_: provide a finer grained facility for determining which log records to output
+  - _formatters_: specify the layout of log records in the final output
+- Log event information is passed between loggers, handlers, filters and formatters in a `LogRecord` instance
+- Logging is performed by calling methods on instances of the `Logger` class
+  - each instance has a name, and they are conceptually arranged in a namespace hierarchy using dots (periods) as separators
+  - e.g., a logger named "scan" is the parent of the logger "scan.text"
+  - a good convention to use when naming loggers is to use a module-level logger in each module that uses logging:
+    - `logger = logging.getLogger(__name__)`
+- Flow of log event information in loggers and handlers (any 'no' answer stops the flow):
+  - logging call in user code
+  - **logger** enabled for the level of call?
+    - yes: create `LogRecord`
+  - does a **filter** attached to logger accept the record?
+    - yes: pass to handlers of current logger
+      - **handler** enabled for level of `LogRecord`?
+        - yes: pass `LogRecord` to attached filter
+      - does a **filter** attached to handler accept the record?
+        - yes: _emit (includes formatting)_
+  - is **[`propagate`](https://docs.python.org/3/library/logging.html#logging.Logger.propagate)** true (default: true) for current logger?
+    - yes: check parent logger
+  - is there a **parent logger**?
+    - yes: set current logger to parent
+      - _go to 'pass to handlers of current (parent) logger'_
+- The root of the hierarchy of loggers is called the root logger
+  - the logger used by the module functions `debug()`, `info()`, `warning()`, `error()` and `critical()`
+  - see <https://docs.python.org/3/library/logging.html#module-level-functions>
+- Defaults
+  - informational and debugging messages are suppressed and the output is sent to standard error
+  - effective log level
+    - if a level is not explicitly set on a logger, the level of its parent (or ancestor) is used as its effective level
+    - the root logger always has an explicit level set (`WARNING` by default)
+  - [`logging.lastResort`](https://docs.python.org/3/library/logging.html#logging.lastResort)
+    - handler of last resort
+    - a `StreamHandler` writing to `sys.stderr` with a level of `WARNING`
+    - handle logging events in the absence of any logging configuration
+  - [`logging.basicConfig(**kwargs)`](https://docs.python.org/3/library/logging.html#logging.basicConfig)
+    - basic configuration for the logging system
+    - creates a `StreamHandler` with a default `Formatter`, and adds it to the root logger
+    - module functions `debug()`, `info()`, `warning()`, `error()` and `critical()` will call `basicConfig()` automatically if no handlers are defined for the root logger
+- **Setting logging level**
+  - the [default logging levels](https://docs.python.org/3/library/logging.html#logging-levels) are (from lowest to highest):
+    - `NOTSET`, `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+  - [`Logger.setLevel(level)`](https://docs.python.org/3/library/logging.html#logging.Logger.setLevel)
+    - when a logger is created, the level is set to `NOTSET`
+      - root logger: all messages are processed
+      - non-root logger: delegate to the parent
+  - [`Handler.setLevel(level)`](https://docs.python.org/3/library/logging.html#logging.Handler.setLevel)
+    - when a handler is created, the level is set to `NOTSET`
+      - all messages are processed
+  - see `test_set_level()`
+- **Adding a handler to a logger**
+  - [`Logger.addHandler(hdlr)`](https://docs.python.org/3/library/logging.html#logging.Logger.addHandler)
+    - adds the specified [handler](https://docs.python.org/3/library/logging.html#logging.Handler) `hdlr` to this logger
+    - see <https://docs.python.org/3/library/logging.handlers.html#module-logging.handlers> for a list of handlers provided by the `logging` and `logging.handlers` modules
+    - note:
+      - if you attach a handler to a logger and one or more of its ancestors, it may emit the same record multiple times
+      - attach it to the appropriate logger which is highest in the logger hierarchy, and leave its descendants' `propagate` property set to `True`
+      - a common scenario is to attach handlers only to the root logger, and to let propagation take care of the rest
+  - see `LoggerSettings`
+- **Logging messages**
+  - [`Logger.debug(msg, *args, **kwargs)`](https://docs.python.org/3/library/logging.html#logging.Logger.debug)`
+    - similarly so with `.info()`, `.warning()`, `.error()` and `.critical()`
+    - similarly so with `logging.debug()`, etc.
+    - logs a message at the corresponding level on this logger
+    - `msg`: message format string
+    - `args`: arguments which are merged into `msg` using the string formatting operator
+    - `kwargs`: keyword arguments `exc_info`, `stack_info`, `stacklevel` and `extra`
+    - see `test_log_message_args()`
+- **Logging exceptions**
+  - [`Logger.exception(msg, *args, **kwargs)`](https://docs.python.org/3/library/logging.html#logging.Logger.exception)
+    - similarly so with `logging.exception()`
+    - logs a message with level `ERROR` on this logger
+    - should only be called from an exception handler
+    - exception info is added to the logging message
+    - see `test_log_exception()`
+  - exceptions can also be logged at specific logging levels using the methods above
+    - specify the `exc_info` keyword argument in `kwargs` as `True` to add exception information to the logging message
+    - `logger.warning("Calculation error", exc_info=True)`
+    - see `test_log_exception_warning()`
+- **Adding stack information to the logging message**
+  - specify the `stack_info` keyword argument in `kwargs` as `True` (defaults to `False`)
+  - `logger.debug("Debug message", stack_info=True)`
+  - see `test_log_stack_info()`
+- **Formatting log message**
+  - [`class logging.Formatter(fmt=None, datefmt=None, style='%')`](https://docs.python.org/3/library/logging.html#logging.Formatter)
+    - responsible for converting a `LogRecord` to (usually) a string which can be interpreted by either a human or an external system
+    - `fmt`
+      - format string for the message as a whole, making use of [`LogRecord` attributes](https://docs.python.org/3/library/logging.html#logrecord-attributes)
+      - default: `'%(message)s'`
+    - `datefmt`
+      - format string for the date/time portion of a message
+      - default: `'%Y-%m-%d %H:%M:%S,uuu'`, where `uuu` is a millisecond value, and the other letters are as per [`time.strftime()`](https://docs.python.org/3/library/time.html#time.strftime)
+      - `logging.Formatter("%(asctime)s %(message)s", "%d/%m/%Y %H:%M:%S")`
+      - see `test_format_datefmt()`
+    - `style`
+      - `'%'`: [printf-style](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting) (default)
+        - `logging.Formatter("%(levelname)s %(funcName)s %(thread)s: %(message)s")`
+      - `'{'`: [`str.format()`](https://docs.python.org/3/library/string.html#format-string-syntax) style
+        - `logging.Formatter("{levelname} {funcName} {thread}: {message}", style="{")`
+      - `'$'`: [`string.Template`](https://docs.python.org/3/library/string.html#string.Template) style
+        - `logging.Formatter("$levelname $funcName $thread: $message", style="$")`
+      - see `test_format()`
+- **Logging extra information**
+  - the fourth keyword argument, **`extra`**, in the `.debug()` etc. module functions/`Logger` methods can be used to pass a dictionary with contextual or user-defined attributes
+  - `logging.Formatter("%(levelname)s [%(user)s]: %(message)s")`
+  - `logger.warning("The message", extra={"user": "Some User"})`
+  - see `test_log_extra()`
+- **Configuring logging**
+  - logging can be configured in 3 ways:
+    - creating loggers, handlers, and formatters using Python code
+    - creating a logging config file and reading it using the `fileConfig()` function
+    - creating a dictionary of configuration information and passing it to the `dictConfig()` function
+  - [`logging.basicConfig(**kwargs)`](https://docs.python.org/3/library/logging.html#logging.basicConfig)
+    - basic configuration for the logging system by creating a StreamHandler with a default `Formatter` and adding it to the root logger
+    - does nothing if the root logger already has handlers configured, unless the keyword argument `force` is set to `True`
+    - see [`logging_basicconfig.py`](src/ch11/logging_basicconfig.py)
+  - [`logging.config.dictConfig(config)`](https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig)
+    - takes the logging configuration from a dictionary
+  - [dictionary schema](https://docs.python.org/3/library/logging.config.html#dictionary-schema-details) - the dictionary passed to `dictConfig()` must contain the `version` key, and the following optional keys:
+    - `formatters`
+      - key: id
+      - value: a dict consisting of
+        - `format` and `datefmt` to construct a `Formatter` instance
+    - `filters`
+      - key: id
+      - value: a dict describing how to configure a `Filter` instance
+    - `handlers`
+      - key: id
+      - value: a dict consisting of
+        - `class` (required): fully qualified handler class name
+        - `level`
+        - `formatter`: id of the formatter for this handler
+        - `filters`: list of ids of the filters for this handler
+        - other keys passed through as keyword arguments to the handler's constructor
+    - `loggers`
+      - key: logger name
+      - value: a dict consisting of
+        - `level`
+        - `propagate`
+        - `filters`: list of ids of filters for this logger
+        - `handlers`: list of ids of handlers for this logger
+    - `root`
+      - configuration of the root logger
+      - value: same as `loggers`
+  - see:
+    - [`logging_config.json`](src/ch11/logging_config.json)
+    - [`logging_config.py`](src/ch11/logging_config.py)
+- **Buffering logging messages and outputting them conditionally**
+  - [`class logging.handlers.MemoryHandler(capacity, flushLevel=ERROR, target=None, flushOnClose=True)`](https://docs.python.org/3/library/logging.handlers.html#logging.handlers.MemoryHandler)
+    - buffers log records in memory, periodically flushing them to a target handler
+      - when the buffer is full, or when an event of a certain severity or greater is seen
+    - `capacity`: number of records buffered
+  - see `test_log_buffering()` and `test_log_buffering_decorator()`
+  - see also: <https://docs.python.org/3/howto/logging-cookbook.html#buffering-logging-messages-and-outputting-them-conditionally>
+- See also:
+  - <https://docs.python.org/3/howto/logging.html#logging-howto>
+  - <https://docs.python.org/3/howto/logging-cookbook.html>
+  - <https://pymotw.com/3/logging/index.html>
+
+### Weak References
+
+- See [`weakref_test.py`](src/ch11/weakref_test.py)
+- Python does automatic memory management (reference counting for most objects and garbage collection to eliminate cycles)
+- The memory is freed shortly after the last reference to it has been eliminated
+- A weak reference to an object is not enough to keep the object alive
+  - when the only remaining references to a referent are weak references, garbage collection is free to destroy the referent and reuse its memory for something else
+- A primary use for weak references is to implement caches or mappings holding large objects, where it's desired that a large object not be kept alive solely because it appears in a cache or mapping
+- For example, if you have a number of large binary image objects, you may wish to associate a name with each
+  - if you used a dictionary to map names to images, or images to names, the image objects would remain alive just because they appeared as values or keys in the dictionaries
+  - the [`WeakKeyDictionary`](https://docs.python.org/3/library/weakref.html#weakref.WeakKeyDictionary) and [`WeakValueDictionary`](https://docs.python.org/3/library/weakref.html#weakref.WeakValueDictionary) classes supplied by the [`weakref`](https://docs.python.org/3/library/weakref.html#module-weakref) module are an alternative, using weak references to construct mappings
+  - if an image object is a value in a `WeakValueDictionary`
+    - when the last remaining references to that image object are the weak references held by weak mappings
+    - garbage collection can reclaim the object, and its corresponding entries in weak mappings are simply deleted
+
+### Tools for Working with Lists
+
+- See [`tools_for_lists_test.py`](src/ch11/tools_for_lists_test.py)
+
+#### `array`
+
+- The [`array`](https://docs.python.org/3/library/array.html#module-array) module provides an `array()` object that is like a list that stores only homogeneous data and stores it more compactly
+  - array objects support the ordinary sequence operations of indexing, slicing, concatenation, and multiplication
+  - array objects also implement the buffer interface, and may be used wherever bytes-like objects are supported
+- [`class array.array(typecode[, initializer])`](https://docs.python.org/3/library/array.html#array.array)
+  - a new array whose items are restricted by `typecode`, and initialized from the optional `initializer` value, which must be a list, a bytes-like object, or iterable over elements of the appropriate type
+  - see `test_array()`
+
+#### `collections` and `deque`
+
+- The [`collections`](https://docs.python.org/3/library/collections.html#module-collections) module provides a `deque()` object
+  - like a list with faster appends and pops from the left side
+  - slower lookups in the middle
+  - well suited for implementing queues and breadth first tree searches
+- [`class collections.deque([iterable[, maxlen]])`](https://docs.python.org/3/library/collections.html#collections.deque)
+
+  - generalization of stacks and queues
+  - supports thread-safe, memory efficient appends and pops from either side of the deque with approximately the same O(1) performance in either direction
+  - if `maxlen` is not specified or is `None`, deques may grow to an arbitrary length
+    - otherwise, the deque is bounded to the specified maximum length
+    - once a bounded length deque is full, when new items are added, a corresponding number of items are discarded from the opposite end
+  - supports
+    - iteration
+    - pickling
+    - `len(d)`
+    - `reversed(d)`
+    - `copy.copy(d)`
+    - `copy.deepcopy(d)`
+    - membership testing with the `in` operator
+    - subscript references such as `d[0]` to access the first element
+      - indexed access is O(1) at both ends but slows to O(n) in the middle
+      - for fast random access, use lists instead
+  - see `test_deque()`
+
+#### `bisect`
+
+- The [`bisect`](https://docs.python.org/3/library/bisect.html#module-bisect) module provides support for maintaining a list in sorted order without having to sort the list after each insertion
+  - for long lists of items with expensive comparison operations, this can be an improvement over the more common approach
+  - called bisect because it uses a basic bisection algorithm to do its work
+- Some module functions:
+  - [`bisect.bisect_left(a, x, lo=0, hi=len(a))`](https://docs.python.org/3/library/bisect.html#bisect.bisect_left)
+    - locates and returns the insertion point for `x` in `a` to maintain sorted order
+    - if `x` is already present in `a`, the insertion point will be before (to the left of) any existing entries
+    - the returned insertion point `i` partitions the array `a` into two halves so that:
+      - `all(val < x for val in a[lo:i])` for the left side
+      - `all(val >= x for val in a[i:hi])` for the right side
+    - see `test_bisect_left()`
+  - [`bisect.bisect(a, x, lo=0, hi=len(a))`](https://docs.python.org/3/library/bisect.html#bisect.bisect)
+    - similar to `bisect_left()`, but returns an insertion point which comes after (to the right of) any existing entries of `x` in `a`
+    - see `test_bisect_bisect()`
+  - [`bisect.insort(a, x, lo=0, hi=len(a))`](https://docs.python.org/3/library/bisect.html#bisect.insort)
+    - insert `x` in `a` in sorted order
+    - `x` is inserted in `a` after any existing entries of `x`
+    - note: the O(log n) search is dominated by the slow O(n) insertion step
+    - see `test_bisect_insort()`
+
+#### `heapq`
+
+- The [`heapq`](https://docs.python.org/3/library/heapq.html#module-heapq) module provides an implementation of the heap queue algorithm, also known as the priority queue algorithm
+  - provides functions for implementing heaps based on regular lists
+  - the lowest valued entry is always kept at position zero
+  - heaps are binary trees for which every parent node has a value less than or equal to any of its children
+  - this implementation uses arrays for which `heap[k] <= heap[2*k+1]` and `heap[k] <= heap[2*k+2]` for all `k`, counting elements from zero
+
+```text
+       0
+   1       2
+ 3   4   5   6
+```
+
+- Some module functions:
+  - [`heapq.heapify(x)`](https://docs.python.org/3/library/heapq.html#heapq.heapify)
+    - transforms list `x` into a heap, in-place, in linear time
+    - see `test_heapq_heapify()`
+  - [`heapq.heappush(heap, item)`](https://docs.python.org/3/library/heapq.html#heapq.heappush)
+    - pushes the value `item` onto the `heap`, maintaining the heap invariant
+  - [`heapq.heappop(heap)`](https://docs.python.org/3/library/heapq.html#heapq.heappop)
+    - pops and return the smallest item from the heap, maintaining the heap invariant
+    - to access the smallest item without popping it, use `heap[0]`
+  - [`heapq.heappushpop(heap, item)`](https://docs.python.org/3/library/heapq.html#heapq.heappushpop)
+    - pushes `item` on the `heap`, then pop and return the smallest item from the `heap`
+    - more efficient than `heappush()` followed by `heappop()`
+    - see `test_heapq_push_pop()`
+  - [`heapq.nlargest(n, iterable, key=None)`](https://docs.python.org/3/library/heapq.html#heapq.nlargest)
+    - returns a list with the `n` largest elements from the dataset defined by `iterable`
+    - performs best for smaller values of `n`
+      - for larger values, it is more efficient to use the [`sorted()`](https://docs.python.org/3/library/functions.html#sorted) function
+    - see `test_heapq_nlargest()`
+
+### Decimal Floating Point Arithmetic
+
+- See [`decimal_test.py`](src/ch11/decimal_test.py)
+- The [`decimal`](https://docs.python.org/3/library/decimal.html#module-decimal) module offers a [`Decimal`](https://docs.python.org/3/library/decimal.html#decimal.Decimal) datatype for decimal floating point arithmetic
+- Compared to the built-in `float` implementation of binary floating point, the class is especially helpful for:
+  - financial applications and other uses which require exact decimal representation,
+  - control over precision,
+  - control over rounding to meet legal or regulatory requirements,
+  - tracking of significant decimal places, and
+  - applications where the user expects the results to match calculations done by hand
+- [`decimal.getcontext()`](https://docs.python.org/3/library/decimal.html#decimal.getcontext)
+  - returns the current context for the active thread
+- [`class decimal.Context(prec=None, rounding=None, Emin=None, Emax=None, capitals=None, clamp=None, flags=None, traps=None)`](https://docs.python.org/3/library/decimal.html#decimal.Context)
+  - creates a new context
 
 ## Source
 

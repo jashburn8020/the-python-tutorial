@@ -1,0 +1,12 @@
+{
+  "info": {
+    "name": "sampleproject",
+    "description": "A sample Python project\n=======================\n\nThis is the description file for the project.",
+    "author": "A. Random Developer",
+    "classifiers": [
+      "Development Status :: 3 - Alpha",
+      "Intended Audience :: Developers"
+    ]
+  },
+  "last_serial": 7562906
+}
