@@ -122,6 +122,7 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
       - [`bisect`](#bisect)
       - [`heapq`](#heapq)
     - [Decimal Floating Point Arithmetic](#decimal-floating-point-arithmetic)
+  - [12. `enum` - Enumerations](#12-enum---enumerations)
   - [Source](#source)
 
 ## 3. An Informal Introduction to Python
@@ -2963,6 +2964,62 @@ TBD - as a separate chapter
   - returns the current context for the active thread
 - [`class decimal.Context(prec=None, rounding=None, Emin=None, Emax=None, capitals=None, clamp=None, flags=None, traps=None)`](https://docs.python.org/3/library/decimal.html#decimal.Context)
   - creates a new context
+
+## 12. `enum` - Enumerations
+
+- See [`enum_test.py`](src/ch12/enum_test.py)
+- The [`enum`](https://docs.python.org/3/library/enum.html#module-enum) module defines an enumeration type
+- An enumeration is a set of symbolic names (members) bound to unique, constant values
+  - can be used to create well-defined symbols for values, instead of using literal integers or strings
+- **Creating an enumeration**
+  - created using the `class` syntax or using a functional API
+  - nomenclature:
+    - class `Color` is an _enumeration_ (or _enum_)
+    - attributes `Color.RED`, `Color.GREEN`, etc., are _enumeration members_ (or _enum members_) and are functionally constants
+      - enum members are singletons
+    - enum members have _names_ and _values_
+      - the name of `Color.RED` is `RED`, the value of `Color.RED` is `1`
+    - member values can be anything: `int`, `str`, etc.
+  - enum members are hashable, so they can be used in dictionaries and sets
+  - see `test_create()`
+- **Iteration**
+  - enums support iteration, in definition order
+  - see `Color()` and `test_iteration()`
+- **Comparing enumeration members**
+  - enum members are compared by identity and equality
+  - see `test_comparison()`
+  - use [`IntEnum`](https://docs.python.org/3/library/enum.html#intenum) for `<` and `>` comparisons
+    - see `test_comparison_intenum()`
+- **Enumeration values**
+  - duplicate enum values
+    - having two enum members with the same same name is invalid, but two enum members are allowed to have the same value
+    - given two members A and B with the same value, and A is defined first, B is an alias to A
+    - see `test_enum_alias()`
+  - unique enumeration values
+    - use the `@enum.unique` class decorator to disallow enum members with te same value
+  - automatic values
+    - use [`auto()`](https://docs.python.org/3/library/enum.html#enum.auto) to automatically generate enum values
+    - `CIRCLE = auto()`
+    - see `test_auto_values()`
+- **Creating enumerations programmatically**
+  - the `Enum` class is callable to create enums programmatically
+  - `Enum(value='NewEnumName', names=<...>, *, module='...', qualname='...', type=<mixed-in class>, start=1)`
+    - `value`: what the new Enum class will record as its name
+    - `names`: the enum members, which can be:
+      - a whitespace- or comma-separated string of names
+        - `PrimaryColor = Enum("PrimaryColor", "YELLOW RED BLUE")`
+      - a sequence of names
+      - a sequence of 2-tuples with key/value pairs
+      - a mapping (e.g., dictionary) of names to values
+    - see `test_programmatic_enums()`
+- **Non-integer member values**
+  - enum member values are not restricted to integers
+    - can be any type of object
+  - if your enumeration defines `__new__()` and/or `__init__()`, then whatever value(s) were given to the enum member will be passed into those methods
+  - enums are Python classes, and can have methods and special methods
+  - see `test_nonint_member_values()`
+- See also:
+  - <https://pymotw.com/3/enum/index.html>
 
 ## Source
 
