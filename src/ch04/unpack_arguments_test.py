@@ -1,6 +1,6 @@
 """Demonstrate unpacking arguments."""
 
-from typing import Tuple
+from typing import Tuple, Generator
 
 
 def keyword_arguments(
@@ -24,3 +24,18 @@ def test_unpack_dictionary() -> None:
     """Use the `**`-operator to unpack a dictionary."""
     args_dict = {"third": 30, "second": 20}
     assert keyword_arguments(first=10, **args_dict) == (10, 20, 30,)
+
+
+def test_unpack_star_param() -> None:
+    """Combine unpacking with the `*`-parameter."""
+
+    def test(*args: int) -> Tuple[int, ...]:
+        return args
+
+    assert test(1, 2, 3) == (1, 2, 3)
+
+    # The values in the tuple is unpacked.
+    assert test(*(1, 2, 3)) == (1, 2, 3)
+
+    # The values produced by the generator is unpacked.
+    assert test(*(n for n in range(3))) == (0, 1, 2)
