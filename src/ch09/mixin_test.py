@@ -25,7 +25,14 @@ class LimitSizeMixin:
 
 
 class LimitSizeButton(LimitSizeMixin, Button):
-    """Limited size button."""
+    """Limited size button.
+
+    Note: the position of the mixin is important as super follows the MRO. As it is,
+    the MRO of `LimitSizeButton` is `(LimitSizeButton, LimitSizeMixin, Button,
+    GraphicalEntity, object)`. When we instantiate it, the `__init__` method is
+    provided by `LimitSizeMixin`, which in turn calls through `super` the method
+    `__init__` of `Button`.
+    """
 
 
 def test_normal_button() -> None:
