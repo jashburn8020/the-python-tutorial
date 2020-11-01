@@ -1,6 +1,6 @@
 # The Python Tutorial
 
-Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.html)
+Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.html) (mostly).
 
 - [The Python Tutorial](#the-python-tutorial)
   - [3. An Informal Introduction to Python](#3-an-informal-introduction-to-python)
@@ -123,7 +123,8 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
       - [`heapq`](#heapq)
     - [Decimal Floating Point Arithmetic](#decimal-floating-point-arithmetic)
   - [12. `enum` - Enumerations](#12-enum---enumerations)
-  - [Source](#source)
+  - [13. Hashable Objects in Sets and Dictionaries](#13-hashable-objects-in-sets-and-dictionaries)
+  - [Main Source](#main-source)
 
 ## 3. An Informal Introduction to Python
 
@@ -3021,6 +3022,56 @@ TBD - as a separate chapter
 - See also:
   - <https://pymotw.com/3/enum/index.html>
 
-## Source
+## 13. Hashable Objects in Sets and Dictionaries
+
+- See [`hash_test.py`](src/ch13/hash_test.py)
+- [`object.__eq__(self, other)`](https://docs.python.org/3/reference/datamodel.html#object.__eq__)
+  - `x == y` calls `x.__eq__(y)`
+  - by default, `object` implements `__eq__()` by using `is`
+    - returns `NotImplemented` in the case of a false comparison
+  - `__ne__()` by default delegates to `__eq__()` and inverts the result unless it is `NotImplemented`
+- For an object to be **hashable**
+  - needs a **`__hash__()`** method
+    - has a hash value which never changes during its lifetime
+  - needs an **`__eq__()`** method
+    - can be compared to other objects
+  - hashable objects which compare equal must have the same hash value
+  - note: you can use the [`dataclass`](https://docs.python.org/3.9/library/dataclasses.html) decorator with `eq=True` and `frozen=True` to create a hashable object
+- [`object.__hash__(self)`](https://docs.python.org/3/reference/datamodel.html#object.__hash__)
+  - called by built-in function `hash()` and for operations on members of **hashed collections** including `set`, `frozenset`, and `dict`
+  - should return an integer
+  - mix together the hash values of the components of the object that also play a part in comparison of objects by packing them into a tuple and hashing the tuple
+
+```python
+def __hash__(self):
+    return hash((self.name, self.nick, self.color))
+```
+
+- If a class **does not define an `__eq__()`** method, then it should **not define a `__hash__()`** operation either
+  - if it **defines `__eq__()` but not `__hash__()`**, its instances will not be usable as items in hashable collections
+    - its `__hash__()` is implicitly set to `None`
+      - instances of the class will raise an appropriate `TypeError` when a program attempts to retrieve their hash value
+      - will also be identified as unhashable when checking `isinstance(obj, collections.abc.Hashable)`
+  - if a class defines **mutable objects** and implements an `__eq__()` method, it should not implement `__hash__()`
+    - the implementation of hashable collections requires that a key's **hash value is immutable**
+    - if the object's hash value changes, it will be in the wrong hash bucket
+- User-defined classes have `__eq__()` and `__hash__()` methods by default
+  - all objects compare unequal except with themselves
+  - `x.__hash__()` returns an appropriate value such that `x == y` implies both that `x is y` and `hash(x) == hash(y)`
+- If a class that overrides `__eq__()` needs to retain the implementation of `__hash__()` from a parent class
+  - set `__hash__ = <ParentClass>.__hash__`
+- If a class that does not override `__eq__()` wishes to suppress hash support
+  - include `__hash__ = None` in the class definition
+- A **set** object is an **unordered** collection of distinct **hashable objects**
+  - 2 built-in set types: `set` and `frozenset`
+  - the `set` type is mutable
+    - since it is mutable, it has no hash value and cannot be used as either a dictionary key or as an element of another set
+  - the `frozenset` type is immutable and hashable
+- A **mapping** object maps **hashable values** to arbitrary objects
+  - mappings are mutable objects
+  - 1 standard mapping type: the dictionary
+  - values that are not hashable may not be used as keys
+
+## Main Source
 
 - "The Python Tutorial." _The Python Tutorial - Python 3.8.3 Documentation_, 19 May 2020, [docs.python.org/3/tutorial/index.html](https://docs.python.org/3/tutorial/index.html).

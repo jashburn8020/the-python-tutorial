@@ -101,7 +101,7 @@ def test_programmatic_enums() -> None:
 
 def test_nonint_member_values() -> None:
     """Create enums with non-integer member values.
-    
+
     Also define attributes and method.
     """
 
