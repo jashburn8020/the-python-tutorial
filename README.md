@@ -1,8 +1,7 @@
 # The Python Tutorial
 
-Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.html) (mostly).
-
 - [The Python Tutorial](#the-python-tutorial)
+  - [Introduction](#introduction)
   - [3. An Informal Introduction to Python](#3-an-informal-introduction-to-python)
     - [Numbers](#numbers)
     - [Strings](#strings)
@@ -126,9 +125,22 @@ Examples from [The Python Tutorial](https://docs.python.org/3/tutorial/index.htm
   - [13. Hashable Objects in Sets and Dictionaries](#13-hashable-objects-in-sets-and-dictionaries)
   - [Main Source](#main-source)
 
-## 3. An Informal Introduction to Python
+## Introduction
 
-- Based on <https://docs.python.org/3/tutorial/introduction.html>
+- Based mainly (but not completely) on [The Python Tutorial](https://docs.python.org/3/tutorial/index.html) (Python 3.8)
+- Code examples
+  - written as pytest tests (see <https://github.com/jashburn8020/python-testing-with-pytest> if you are not familiar with pytest)
+    - `assert` statements demonstrate code behaviour that you expect to see
+  - written with type hints (see <https://github.com/jashburn8020/python-type-hints-mypy> if you are not familiar with type hints)
+- To run the examples:
+  1. install Pipenv (see <https://github.com/jashburn8020/getting-started/tree/master/python#pipenv>)
+  2. clone this repo into a directory
+  3. install dependencies by running `pipenv install`
+     - strictly speaking, you only need to install the `pytest` and `requests` packages
+  4. run `pytest` from the installation directory
+     - executes all the examples (tests), which should all pass
+
+## 3. An Informal Introduction to Python
 
 ### Numbers
 
