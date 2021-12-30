@@ -137,7 +137,8 @@
   2. clone this repo into a directory
   3. install dependencies by running `pipenv install`
      - strictly speaking, you only need to install the `pytest` and `requests` packages
-  4. run `pytest` from the installation directory
+  4. activate the virtual environment by running `pipenv shell`
+  5. run `pytest` from the installation directory
      - executes all the examples (tests), which should all pass
 
 ## 3. An Informal Introduction to Python
